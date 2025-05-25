@@ -23,7 +23,7 @@ import importlib
 
 import logging
 
-from klines_format import klines_format_hl
+
 from tqdm import tqdm
 from scipy.stats import spearmanr
 import pandas as pd
@@ -1382,36 +1382,6 @@ def full_feature_engineering(df: pd.DataFrame, n_jobbs, c, yinzi) -> pd.DataFram
     return df_processed
 
 
-def calculate_factor_blocked(arg):
-    try:
-
-        symbol, frequency, d, sdt, edt = arg
-        df = klines_format_hl(symbol, freq='1分钟', sdt=sdt, edt=edt, data=d, raw_bar=True)
-        df = pd.DataFrame(df)
-        df = df[
-            ["symbol", "dt", "open", "close", "high", "low", "vol", "amount", "trades", "tbase",
-             "tquote"]].copy()
-        df['dt'] = pd.to_datetime(df['dt'])
-        date = df['dt'].iloc[0].replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-
-        # 获取最后一行的日期
-
-
-        # 筛选数据
-        df = df[(df['dt'] > date) ]
-        if len(df) < 300:
-            logger.warning(f"{symbol} 日线数据量不足")
-            return None
-
-        # 执行特征工程处理
-        df = resample_kline(df, frequency)
-
-        df["price"] = df["close"]
-        return df
-
-    except Exception as e:
-        logger.exception(f"计算因子失败：{symbol}: {e}")
-        return None
 
 
 def calculate_factor(frequency, n_jobbs, d, yinzi,sdt,edt):
@@ -1440,49 +1410,8 @@ def calculate_factor(frequency, n_jobbs, d, yinzi,sdt,edt):
         return dfk
 
     except FileNotFoundError:
-        symbols = codes  # 假设codes已定义
-        rows = []
-        with ProcessPoolExecutor(
-                max_workers=max_read,
-                mp_context=multiprocessing.get_context(mp_context)
-        ) as executor:
-            bar = tqdm(total=len(symbols), desc=f"计算量价因子")
-            args = [(symbol, frequency, d ,sdt,edt) for symbol in symbols]
-            # 使用map方法并行处理，只传递列名
-            for df in executor.map(
-                    calculate_factor_blocked,
-                    args
-            ):
-                bar.update(1)
-                if df is not None:
-                    rows.append(df)
-
-        # 合并所有数据
-        if rows:
-            dfk = pd.concat(rows)
-            #dfk.to_feather(f"{path_dr}/experiment/file/klines_{frequency}_{d}_{yinzi}.feather")
-            dfk = full_feature_engineering(dfk, n_jobbs, frequency, yinzi)
-
-            factor_cols = [col for col in dfk.columns if col.startswith('F#')]
-
-            # 计算每个因子列的0值占比
-            zero_ratios = {}
-            for col in factor_cols:
-                zero_ratio = (dfk[col] == 0).mean()
-                if zero_ratio > 0.2:  # 如果0值占比超过30%
-                    zero_ratios[col] = zero_ratio
-
-            # 获取需要删除的列名
-            cols_to_drop = list(zero_ratios.keys())
-            existing_cols = [col for col in cols_to_drop if col in dfk.columns]
-            if existing_cols:
-                dfk = dfk.drop(columns=existing_cols)
-            dfk = dfk.sort_values(['symbol', 'dt']).reset_index(drop=True)
-
-            return dfk
-        else:
-            logger.warning("没有成功处理任何股票数据")
-            return pd.DataFrame()
+        logger.warning("没有k线数据")
+        return
 
 
 def calculate_factor_returns_blocked(df, n_jobs=None, current_frequency='4小时',
