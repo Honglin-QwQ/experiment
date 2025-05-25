@@ -198,9 +198,6 @@ def evaluate_pairs(pairs: pd.DataFrame, trade_dir: str = "多空") -> dict:
 
 class WeightBacktest:
 
-
-
-
     def __init__(self, dfw, digits=2, weight_type="ts", **kwargs) -> None:
 
         self.kwargs = kwargs

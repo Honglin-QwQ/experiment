@@ -4169,8 +4169,8 @@ if __name__ == "__main__":
         for m in ['zscore_maxmin']:
             for data in ['spot']:
                 for yinzi in ['4h']:
-                    for selec in ['changed']:
-                        if selec == 'changed':
+                    for selec in ['fix']:
+                        if selec == 'fix':
                             c = factor_to_strategy(fre=time, method=m, method2=m, d=data, yinzi=yinzi,
                                                    n_jobs=num_process,
                                                    n_jobs2=num_process_2)
@@ -4179,7 +4179,7 @@ if __name__ == "__main__":
                             c.nor_factor()
                             c.cal_return(selec)
                             c.generate_simple_strategy('rolling', 4, 360, 7, selec)
-                            # c.optimize_factor_weights()
+                            c.optimize_factor_weights()
                         else:
                             c = factor_to_strategy(fre=time, method=m, method2=m, d=data, yinzi=yinzi,
                                                    n_jobs=num_process,
