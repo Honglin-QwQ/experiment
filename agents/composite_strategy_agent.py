@@ -104,7 +104,7 @@ class CompositeStrategyAgent(BaseAgent):
         )
 
         # 额外的统计可靠性检查
-        # 检查是否有异常的收益率（可能是过拟合）
+        # 检查是否有异常的收益率
         stable_mask &= (factor_metrics['年化'] <= 2.0)  # 年化收益不超过200%
         stable_mask &= (factor_metrics['年化'] >= -0.5)  # 年化亏损不超过50%
 

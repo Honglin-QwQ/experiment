@@ -141,8 +141,8 @@ class MultiAgentPortfolioSystem:
 
 # 使用示例
 if __name__ == "__main__":
-    from experiment import factor_to_strategy  # 导入您的因子计算模块
-    from backtest import WeightBacktest  # 导入您的回测模块
+    from experiment import factor_to_strategy  # 导入因子计算模块
+    from backtest import WeightBacktest  # 导入回测模块
 
     # 配置系统
     config = SystemConfig(
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     )
 
     # 初始化因子计算器和回测系统
-    factor_calculator = factor_to_strategy()  # 您的因子计算器实例
+    factor_calculator = factor_to_strategy()  # 因子计算器实例
 
     # 创建系统
     system = MultiAgentPortfolioSystem(
