@@ -13,7 +13,7 @@ from agents.sub_strategy_agent import SubStrategyAgent
 from agents.composite_strategy_agent import CompositeStrategyAgent
 from agents.optimization_agent import OptimizationAgent
 from agents.performance_judge_agent import PerformanceJudgeAgent
-from agents.base_agnet import Message, MessageType
+from agents.base_agent import Message, MessageType
 
 
 
@@ -146,18 +146,25 @@ if __name__ == "__main__":
 
     # 配置系统
     config = SystemConfig(
-        openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "your-api-key"),
+        openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
+        # models={
+        #     "pm_agent": "anthropic/claude-3-opus",
+        #     "sub_strategy_agent": "openai/gpt-4-turbo",
+        #     "composite_agent": "anthropic/claude-3-sonnet",
+        #     "optimization_agent": "openai/gpt-4",
+        #     "performance_agent": "anthropic/claude-3-opus"
+        # }
         models={
-            "pm_agent": "anthropic/claude-3-opus",
-            "sub_strategy_agent": "openai/gpt-4-turbo",
-            "composite_agent": "anthropic/claude-3-sonnet",
-            "optimization_agent": "openai/gpt-4",
-            "performance_agent": "anthropic/claude-3-opus"
+            "pm_agent": "meta-llama/llama-3.3-8b-instruct:free",
+            "sub_strategy_agent": "meta-llama/llama-3.3-8b-instruct:free",
+            "composite_agent": "meta-llama/llama-3.3-8b-instruct:free",
+            "optimization_agent": "meta-llama/llama-3.3-8b-instruct:free",
+            "performance_agent": "meta-llama/llama-3.3-8b-instruct:free"
         }
     )
 
     # 初始化因子计算器和回测系统
-    factor_calculator = factor_to_strategy()  # 因子计算器实例
+    factor_calculator = factor_to_strategy(d='spot')  # 因子计算器实例
 
     # 创建系统
     system = MultiAgentPortfolioSystem(

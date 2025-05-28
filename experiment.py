@@ -3,7 +3,7 @@ import sys
 import time as time_module
 from datetime import timedelta
 
-path_dr = 'C:/Users/Administrator/PycharmProjects'
+path_dr = '/root/autodl-tmp'
 base_compute_frequency = '12小时'
 max_cor = 0.5
 max_read = 5
@@ -665,7 +665,8 @@ def process_single_factor(args):
     try:
         # 动态导入模块
 
-        module_path = f"examples.Streamlit.factor_function_{yinzi}.{function_name}"
+        # module_path = f"examples.Streamlit.factor_function_{yinzi}.{function_name}"
+        module_path = f"factor_function_{yinzi}.{function_name}"
         module = importlib.import_module(module_path)
 
         # 获取并执行同名函数
@@ -1278,10 +1279,12 @@ def run_all_factor_functions(df, yinzi, n_jobs=None, current_frequency='4小时'
     # 如果没有指定并行线程数，则使用CPU核心数-1
     if n_jobs is None:
         n_jobs = max(1, os.cpu_count() - 1)  # type: ignore #
-    df_cols = pd.read_csv(
-        f"{path_dr}/experiment/factor_function_{yinzi}/cols.csv")
-    my_list = df_cols['factor'].tolist()
-    py_files = [f'{f}.py' for f in my_list]
+    # df_cols = pd.read_csv(
+    #     f"{path_dr}/experiment/factor_function_{yinzi}/cols.csv")
+    # my_list = df_cols['factor'].tolist()
+    # py_files = [f'{f}.py' for f in my_list]
+    path = f"{path_dr}/experiment/factor_function_{yinzi}"
+    py_files = [f for f in os.listdir(path) if f.endswith('.py')]
 
     if not py_files:
         return df
@@ -1387,7 +1390,6 @@ def full_feature_engineering(df: pd.DataFrame, n_jobbs, c, yinzi) -> pd.DataFram
 def calculate_factor(frequency, n_jobbs, d, yinzi,sdt,edt):
     """计算所有股票的量价因子"""
     try:
-
         dfk = pd.read_feather(f"{path_dr}/experiment/file/klines_{frequency}_{d}_{yinzi}.feather")
         dfk = full_feature_engineering(dfk, n_jobbs, frequency, yinzi)
 
@@ -4191,6 +4193,3 @@ if __name__ == "__main__":
                             c.evaluate_factor()
                             c.generate_simple_strategy('rolling', 4, 720, 720, selec)
                             # c.optimize_factor_weights()
-
-
-

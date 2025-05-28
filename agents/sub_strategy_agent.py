@@ -4,11 +4,12 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 from loguru import logger
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-from agents.base_agnet import BaseAgent, Message, MessageType
+from agents.base_agent import BaseAgent, Message, MessageType
 
 from config.system_config import SystemConfig, MarketType
 from config.system_config import PromptTemplates
 from llm.llm_client import OpenRouterClient
+from experiment import calculate_factor_returns_blocked
 
 
 class SubStrategyAgent(BaseAgent):
@@ -51,13 +52,8 @@ class SubStrategyAgent(BaseAgent):
             self.factor_calculator.reverse_factor()
             factor_df =self.factor_calculator.factor_result
 
-
-
             if factor_df is None or factor_df.empty:
                 raise ValueError("Failed to calculate factors")
-
-
-
 
             # 使用LLM决定归一化方法
             normalization_method = self._determine_normalization_method(
@@ -171,13 +167,18 @@ class SubStrategyAgent(BaseAgent):
     def _calculate_factor_returns(self, weights_df: pd.DataFrame) -> pd.DataFrame:
         """计算因子收益"""
 
-        factor_returns = self.factor_calculator.calculate_factor_returns_blocked(
+        # factor_returns = self.factor_calculator.calculate_factor_returns_blocked(
+        #     df=weights_df,
+        #     n_jobs=self.config.backtest_config["n_jobs"],
+        #     current_frequency='4h',
+        #     split_time=pd.to_datetime('2024-01-01')
+        # )
+        factor_returns = calculate_factor_returns_blocked(
             df=weights_df,
             n_jobs=self.config.backtest_config["n_jobs"],
             current_frequency='4h',
             split_time=pd.to_datetime('2024-01-01')
         )
-
         return factor_returns
 
     def _backtest_factors(self, weights_df: pd.DataFrame) -> pd.DataFrame:

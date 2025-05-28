@@ -426,7 +426,7 @@ class WeightBacktest:
 
         pairs, opens = [], []
         for op in operates:
-            print(op)
+            # print(op)
             if op["operate"] in ["开多", "开空"]:
                 opens.append(op)
                 continue

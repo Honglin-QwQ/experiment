@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional, List, Tuple
 from loguru import logger
-from agents.base_agnet import BaseAgent, Message, MessageType
+from agents.base_agent import BaseAgent, Message, MessageType
 
 from config.system_config import SystemConfig
 from config.system_config import PromptTemplates
