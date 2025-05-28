@@ -46,13 +46,12 @@ class PerformanceJudgeAgent(BaseAgent):
         try:
             strategy = message.content.get("strategy", {})
             ssm = message.content.get("ssm", {})
-            symbols = message.content.get("symbols", [])
 
             # 执行全面评估
             logger.info("Performing comprehensive evaluation...")
 
             # 1. 基础性能评估
-            performance_metrics = self._evaluate_basic_performance(strategy, symbols)
+            performance_metrics = self._evaluate_basic_performance(strategy)
 
             # 2. 压力测试
             stress_test_results = self._perform_stress_testing(strategy, ssm)
@@ -100,20 +99,18 @@ class PerformanceJudgeAgent(BaseAgent):
                 content={"error": str(e)}
             )
 
-    def _evaluate_basic_performance(self, strategy: Dict[str, Any],
-                                    symbols: List[str]) -> Dict[str, Any]:
+    def _evaluate_basic_performance(self, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """评估基础性能"""
         # 获取策略权重和回报
-        weights = strategy.get("weights", pd.DataFrame())
+        performance = strategy.get("performance")
         portfolio = strategy.get("portfolio", None)
 
-        if isinstance(weights, dict):
-            weights = pd.DataFrame(weights)
+
 
         # 准备回测数据
-        if not weights.empty and symbols:
-            # 这里需要根据实际的数据格式调整
-            backtest_results = self._run_comprehensive_backtest(weights, symbols)
+        if not performance.empty:
+            backtest_results=performance
+
         else:
             # 使用提供的portfolio对象
             backtest_results = self._extract_portfolio_metrics(portfolio)

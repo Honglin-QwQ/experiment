@@ -180,7 +180,7 @@ if __name__ == "__main__":
     # 投资标的
     symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "BRK-B", "JPM", "JNJ"]
 
-    # 市场数据（可选）
+    # 市场数据
     market_data = {
         "current_conditions": {
             "vix": 18.5,
