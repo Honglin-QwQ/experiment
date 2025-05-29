@@ -185,7 +185,7 @@ class CompositeStrategyAgent(BaseAgent):
             prompt=prompt,
             system_prompt=self.get_system_prompt(),
             model=self.config.models["composite_agent"],
-            temperature=0.5
+            temperature=self.config.llm_config["temperature"]
         )
 
         strategy_specs = self.llm_client.parse_json_response(response.content)

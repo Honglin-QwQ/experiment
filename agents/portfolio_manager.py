@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List
 import pandas as pd
 from dataclasses import dataclass
 from loguru import logger
-from agents.base_agnet import BaseAgent, Message, MessageType
+from agents.base_agent import BaseAgent, Message, MessageType
 from config.system_config import SystemConfig, MarketType
 from config.system_config import PromptTemplates
 from llm.llm_client import OpenRouterClient

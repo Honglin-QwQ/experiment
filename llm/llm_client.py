@@ -7,6 +7,7 @@ import httpx
 import openai
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 from loguru import logger
+import os
 
 from config.system_config import SystemConfig
 
@@ -68,9 +69,11 @@ class OpenRouterClient:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 extra_headers={
+                    "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
                     "HTTP-Referer": "https://quantinvest.ai",
                     "X-Title": "Multi-Agent Portfolio Management System"
-                }
+                },
+                response_format={"type": "json_object"},
             )
 
             # 保存对话历史
@@ -82,17 +85,20 @@ class OpenRouterClient:
                     "role": "assistant",
                     "content": response.choices[0].message.content
                 })
+            content = response.choices[0].message.content.strip('```json').strip('```').strip()
 
             return LLMResponse(
-                content=response.choices[0].message.content,
+                content=content,
                 model=response.model,
                 usage=response.usage.dict() if response.usage else {},
                 raw_response=response
             )
 
+
         except Exception as e:
             logger.error(f"LLM generation error: {str(e)}")
             raise
+
 
     def parse_json_response(self, response: str) -> Dict[str, Any]:
         """解析LLM的JSON响应"""

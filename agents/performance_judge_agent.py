@@ -4,7 +4,7 @@ import numpy as np
 from typing import Dict, Any, Optional, List
 from loguru import logger
 import json
-from agents.base_agnet import BaseAgent, Message, MessageType
+from agents.base_agent import BaseAgent, Message, MessageType
 
 from config.system_config import SystemConfig
 from config.system_config import PromptTemplates
@@ -52,7 +52,8 @@ class PerformanceJudgeAgent(BaseAgent):
             logger.info("Performing comprehensive evaluation...")
 
             # 1. 基础性能评估
-            performance_metrics = self._evaluate_basic_performance(strategy, symbols)
+            # performance_metrics = self._evaluate_basic_performance(strategy, symbols)
+            performance_metrics = self._evaluate_basic_performance(strategy)
 
             # 2. 压力测试
             stress_test_results = self._perform_stress_testing(strategy, ssm)
@@ -100,20 +101,34 @@ class PerformanceJudgeAgent(BaseAgent):
                 content={"error": str(e)}
             )
 
-    def _evaluate_basic_performance(self, strategy: Dict[str, Any],
-                                    symbols: List[str]) -> Dict[str, Any]:
+    # def _evaluate_basic_performance(self, strategy: Dict[str, Any],
+    #                                 symbols: List[str]) -> Dict[str, Any]:
+    #     """评估基础性能"""
+    #     # 获取策略权重和回报
+    #     weights = strategy.get("weights", pd.DataFrame())
+    #     portfolio = strategy.get("portfolio", None)
+    #
+    #     if isinstance(weights, dict):
+    #         weights = pd.DataFrame(weights)
+    #
+    #     # 准备回测数据
+    #     if not weights.empty and symbols:
+    #         # 这里需要根据实际的数据格式调整
+    #         backtest_results = self._run_comprehensive_backtest(weights, symbols)
+    #     else:
+    #         # 使用提供的portfolio对象
+    #         backtest_results = self._extract_portfolio_metrics(portfolio)
+    #
+    #     return backtest_results
+    def _evaluate_basic_performance(self, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """评估基础性能"""
         # 获取策略权重和回报
-        weights = strategy.get("weights", pd.DataFrame())
+        performance = strategy.get("performance")
         portfolio = strategy.get("portfolio", None)
 
-        if isinstance(weights, dict):
-            weights = pd.DataFrame(weights)
-
         # 准备回测数据
-        if not weights.empty and symbols:
-            # 这里需要根据实际的数据格式调整
-            backtest_results = self._run_comprehensive_backtest(weights, symbols)
+        if not performance.empty:
+            backtest_results=performance
         else:
             # 使用提供的portfolio对象
             backtest_results = self._extract_portfolio_metrics(portfolio)
@@ -159,7 +174,7 @@ class PerformanceJudgeAgent(BaseAgent):
             prompt=prompt,
             system_prompt=self.get_system_prompt(),
             model=self.config.models["performance_agent"],
-            temperature=0.5
+            temperature=self.config.llm_config["temperature"]
         )
 
         scenarios = self.llm_client.parse_json_response(response.content)

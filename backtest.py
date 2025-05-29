@@ -213,7 +213,7 @@ class WeightBacktest:
         self.symbols = list(self.dfw["symbol"].unique().tolist())
         self._dailys = None
         self.yearly_days = kwargs.pop("yearly_days", 252)
-        self.results = self.backtest(n_jobs=kwargs.pop("n_jobs", 1))
+        self.results = self.backtest(n_jobs=kwargs.pop("n_jobs", 16))
 
     @property
     def stats(self):
@@ -463,7 +463,7 @@ class WeightBacktest:
         pairs = self.get_symbol_pairs(symbol)
         return symbol, {"daily": daily, "pairs": pairs}
 
-    def backtest(self, n_jobs=1):
+    def backtest(self, n_jobs=16):
 
         n_jobs = min(n_jobs, cpu_count())
         logger.info(f"n_jobs={n_jobs}，将使用 {n_jobs} 个进程进行回测")
@@ -521,5 +521,3 @@ class WeightBacktest:
 
         res["绩效评价"] = stats
         return res
-
-
