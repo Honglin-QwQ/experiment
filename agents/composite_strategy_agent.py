@@ -189,10 +189,11 @@ class CompositeStrategyAgent(BaseAgent):
         )
 
         try:
-            strategy_specs = self.llm_client.parse_json_response(response.content)
+            # strategy_specs = self.llm_client.parse_json_response(response.content)
+            strategy_specs = json.loads(response.content)
         except Exception as e:
-            decoder = json.JSONDecoder()
             try:
+                decoder = json.JSONDecoder()
                 strategy_specs, index = decoder.raw_decode(response.content)
             except json.JSONDecodeError as je:
                 raise ValueError("Failed to decode response content.") from je

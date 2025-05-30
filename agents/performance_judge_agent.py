@@ -8,7 +8,7 @@ from agents.base_agent import BaseAgent, Message, MessageType
 
 from config.system_config import SystemConfig
 from config.system_config import PromptTemplates
-from llm.llm_client import OpenRouterClient
+from llm.llm_client import OpenRouterClient, parse_json_response
 
 
 class PerformanceJudgeAgent(BaseAgent):
@@ -177,8 +177,7 @@ class PerformanceJudgeAgent(BaseAgent):
         )
 
         # scenarios = self.llm_client.parse_json_response(response.content)
-        decoder = json.JSONDecoder()
-        scenarios, index = decoder.raw_decode(response.content)
+        scenarios = parse_json_response(response.content)
 
         # 执行压力测试
         stress_results = {}

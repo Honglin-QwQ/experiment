@@ -1,5 +1,6 @@
 # llm/llm_client.py
 import json
+import re
 import time
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
@@ -85,7 +86,13 @@ class OpenRouterClient:
                     "role": "assistant",
                     "content": response.choices[0].message.content
                 })
-            content = response.choices[0].message.content.strip('```json').strip('```').strip()
+
+            if not response or not response.choices:
+                logger.error("Empty or invalid response from LLM.")
+                raise RuntimeError("LLM returned empty response")
+
+            content = response.choices[0].message.content
+
 
             return LLMResponse(
                 content=content,
@@ -94,21 +101,24 @@ class OpenRouterClient:
                 raw_response=response
             )
 
-
         except Exception as e:
             logger.error(f"LLM generation error: {str(e)}")
             raise
 
 
-    def parse_json_response(self, response: str) -> Dict[str, Any]:
-        """解析LLM的JSON响应"""
+def parse_json_response(response):
+    try:
+        # 尝试直接解析
+        return json.loads(response)
+    except json.JSONDecodeError:
+        # 第二种方法：尝试使用 raw_decode 解析（从头开始解析）
+        decoder = json.JSONDecoder()
         try:
-            # 尝试直接解析
-            return json.loads(response)
+            response_json, index = decoder.raw_decode(response)
+            return response_json
         except json.JSONDecodeError:
-            # 尝试提取JSON部分
-            import re
-            json_pattern = r'\{[\s\S]*\}'
+            # 第三种方法：尝试提取第一个JSON对象/数组
+            json_pattern = r'\{[\s\S]*\}|\$[\s\S]*\$'
             matches = re.findall(json_pattern, response)
             if matches:
                 try:

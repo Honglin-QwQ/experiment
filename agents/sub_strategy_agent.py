@@ -12,6 +12,7 @@ from agents.base_agent import BaseAgent, Message, MessageType
 from config.system_config import SystemConfig, MarketType
 from config.system_config import PromptTemplates
 from llm.llm_client import OpenRouterClient
+from llm.llm_client import parse_json_response
 
 
 class SubStrategyAgent(BaseAgent):
@@ -200,53 +201,34 @@ class SubStrategyAgent(BaseAgent):
             temperature=self.config.llm_config["temperature"]
         )
 
-        # try:
-        #     # decoder = json.JSONDecoder()
-        #     # config, index = decoder.raw_decode(response.content)
-        #     config = json.loads(response.content)
-        #     # 验证方法名
-        #     valid_methods = [
-        #         "zscore", "zscore_clip", "zscore_maxmin", "max_min", "sum",
-        #         "rank_s", "rank_balanced", "rank_c", "long_only_zscore", "long_only_softmax"
-        #     ]
-        #     if config["method"] not in valid_methods:
-        #         logger.warning(f"Invalid method: {config['method']}, defaulting to zscore")
-        #         config["method"] = "zscore"
-        #     return config
-        # except:
-        #     logger.warning("Failed to parse LLM response, using default config")
-        #     # 根据市场类型选择默认方法
-        #     if market_type == "A_SHARES":
-        #         return {
-        #             "method": "long_only_zscore",
-        #             "params": {"winsorize": True, "q": 0.05},
-        #             "reasoning": "Default for A-shares market"
-        #         }
-        #     else:
-        #         return {
-        #             "method": "zscore",
-        #             "params": {"winsorize": True, "q": 0.05},
-        #             "reasoning": "Default for other markets"
-        #         }
-
         try:
-            # 第一种解析方式：使用 json.loads
-            config = json.loads(response.content)
-        except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e1:
-            try:
-                # 第二种解析方式：使用 raw_decode（适用于含多余文本的响应）
-                decoder = json.JSONDecoder()
-                config, index = decoder.raw_decode(response.content)
-            except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e2:
-                # 两种方式都失败，使用默认配置
-                logger.warning(f"Failed to parse JSON using both methods. Error 1: {e1}, Error 2: {e2}")
-                return self.get_default_config(market_type)
+            config = parse_json_response(response.content)
+            # 验证方法名
+            valid_methods = [
+                "zscore", "zscore_clip", "zscore_maxmin", "max_min", "sum",
+                "rank_s", "rank_balanced", "rank_c", "long_only_zscore", "long_only_softmax"
+            ]
+            if config["method"] not in valid_methods:
+                logger.warning(f"Invalid method: {config['method']}, defaulting to zscore")
+                config["method"] = "zscore"
+            return config
+        except:
+            logger.warning("Failed to parse LLM response, using default config")
+            # 根据市场类型选择默认方法
+            if market_type == "A_SHARES":
+                return {
+                    "method": "long_only_zscore",
+                    "params": {"winsorize": True, "q": 0.05},
+                    "reasoning": "Default for A-shares market"
+                }
             else:
-                # 使用统一校验逻辑处理 config
-                return self._validate_config_method(config, logger)
-        else:
-            # 第一种方式成功，继续校验
-            return self._validate_config_method(config, logger)
+                return {
+                    "method": "zscore",
+                    "params": {"winsorize": True, "q": 0.05},
+                    "reasoning": "Default for other markets"
+                }
+
+
 
     def _apply_normalization(self, df: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
         """应用向量化的归一化方法"""
