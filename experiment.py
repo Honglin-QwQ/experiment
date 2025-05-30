@@ -3,13 +3,13 @@ import sys
 import time as time_module
 from datetime import timedelta
 
-path_dr = '/root/autodl-tmp'
+path_dr = 'C:/Users/Administrator/PycharmProjects'
 base_compute_frequency = '12小时'
 max_cor = 0.5
 max_read = 5
 mp_context = 'spawn'
-num_process_2=6
-num_process=12
+num_process_2=5
+num_process=5
 chunksize_n=2
 chunksize_m=100
 sys.path.append(f"{path_dr}/experiment")
@@ -1535,6 +1535,7 @@ def cross_normalize_numpy(dt_array, x_array, method='zscore', **kwargs):
     winsorize = kwargs.get("winsorize", False)
     q = kwargs.get("q", 0.05)
     n = kwargs.get("n", 3)
+    temperature = kwargs.get("temperature", 1.0)
 
     # 创建结果数组，初始化为 NaN 或 0 (using 0 matches original init)
     result = np.zeros_like(x_array, dtype=np.float64)  # Use float64 for calculations
@@ -1658,7 +1659,30 @@ def cross_normalize_numpy(dt_array, x_array, method='zscore', **kwargs):
                     normalized[bottom_mask] = -((actual_n - (rank_asc[bottom_mask] - 1)) / actual_n)
                     # Note: If top_mask and bottom_mask overlap (small N), top wins here. Adjust if needed.
                 # else: normalized remains 0
+            elif method == "long_only_zscore":
+                    # 适用于不能做空的市场
+                mean = np.mean(dt_x_values)
+                std = np.std(dt_x_values)
+                if std > 1e-9:
+                    z = (dt_x_values - mean) / std
+                    # 转换到[0, 1]范围
+                    min_z = np.min(z)
+                    max_z = np.max(z)
+                    if max_z > min_z:
+                        normalized = (z - min_z) / (max_z - min_z)
 
+            elif method == "long_only_softmax":
+                    # Softmax确保所有权重为正
+                    # 先标准化以提高数值稳定性
+                mean = np.mean(dt_x_values)
+                std = np.std(dt_x_values)
+                if std > 1e-9:
+                    z = (dt_x_values - mean) / std
+                        # 应用温度参数
+                    z = z / temperature
+                        # Softmax
+                    exp_z = np.exp(z - np.max(z))  # 减去最大值提高稳定性
+                    normalized = exp_z / np.sum(exp_z)
 
             elif method == "rank_q":
                 # Quantile rank - requires pre-defined bins or logic not easily done per group here
@@ -2959,7 +2983,7 @@ def multi_dimensional_strategy(factor_metrics_df, strategy_name, n_factors, fact
 
 class factor_to_strategy():
 
-    def __init__(self, fre='4小时', method=None, method2=None, d='future', yinzi='4h', n_jobs=16, n_jobs2=16) -> None:
+    def __init__(self, fre='4小时', method=None, method2=None, d='future', yinzi='4h', n_jobs=5, n_jobs2=5) -> None:
         self.reverse_dict = None
         self.filtered_factor_dict = None
         self.split_time = pd.to_datetime('2024-01-01')
@@ -4167,7 +4191,7 @@ class factor_to_strategy():
 
 if __name__ == "__main__":
     # '日线','12小时','8小时','6小时','4小时','60分钟','30分钟','zscore','max_min','sum','zscore_clip','zscore_maxmin','rank','rank_balanced','rank_c'
-    for time in ['2小时','1小时']:
+    for time in ['4小时','1小时']:
         for m in ['zscore_maxmin']:
             for data in ['spot']:
                 for yinzi in ['4h']:

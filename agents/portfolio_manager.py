@@ -78,11 +78,13 @@ class PortfolioManagerAgent(BaseAgent):
                 "volatility": {{"operator": "<", "value": 0.20}},
                 "correlation_with_benchmark": {{"operator": "<", "value": 0.8}}
             }},
-            "universe": "US_EQUITIES/A_SHARES/FUTURES",
-            "investment_horizon": "short-term/medium-term/long-term",
-            "market_type": "US_EQUITIES/A_SHARES/FUTURES/CRYPTO",
+            "universe": "US_EQUITIES or A_SHARES or FUTURES or CRYPTO",
+            "investment_horizon": "short-term or medium-term or long-term",
+            "market_type": "US_EQUITIES or A_SHARES or FUTURES or CRYPTO",
             "additional_requirements": ["requirement1", "requirement2"]
         }}
+        CRITICAL: Please ensure the JSON response is complete and properly closed with all necessary closing braces. Do not truncate the response.
+        
         """
 
         response = self.llm_client.generate(

@@ -178,6 +178,7 @@ class CompositeStrategyAgent(BaseAgent):
             "balanced": {{"metrics": ["夏普", "卡玛"], "weights": [0.5, 0.5], "top_n": 30, "strategy_type": "balanced"}},
             "defensive": {{"metrics": ["最大回撤", "日胜率"], "weights": [-1, 1], "top_n": 20, "strategy_type": "defensive"}}
         }}
+        CRITICAL: Please ensure the JSON response is complete and properly closed with all necessary closing braces. Do not truncate the response.
         """
 
         response = self.llm_client.generate(

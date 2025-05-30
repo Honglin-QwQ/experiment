@@ -43,7 +43,7 @@ class OpenRouterClient:
                  system_prompt: Optional[str] = None,
                  model: Optional[str] = None,
                  temperature: float = 0.7,
-                 max_tokens: int = 4000,
+                 max_tokens: int = 10000,
                  conversation_id: Optional[str] = None) -> LLMResponse:
         """生成响应"""
         try:
@@ -107,24 +107,48 @@ class OpenRouterClient:
 
 
 def parse_json_response(response):
+    """更robust的JSON解析"""
     try:
         # 尝试直接解析
         return json.loads(response)
-    except json.JSONDecodeError:
-        # 第二种方法：尝试使用 raw_decode 解析（从头开始解析）
-        decoder = json.JSONDecoder()
-        try:
-            response_json, index = decoder.raw_decode(response)
-            return response_json
-        except json.JSONDecodeError:
-            # 第三种方法：尝试提取第一个JSON对象/数组
-            json_pattern = r'\{[\s\S]*\}|\$[\s\S]*\$'
-            matches = re.findall(json_pattern, response)
-            if matches:
-                try:
-                    return json.loads(matches[0])
-                except json.JSONDecodeError:
-                    pass
+    except json.JSONDecodeError as e:
+        logger.warning(f"Direct JSON parse failed: {e}")
 
-            logger.warning("Failed to parse JSON response, returning empty dict")
-            return {}
+        # 尝试清理和修复JSON
+        cleaned_response = response.strip()
+
+        # 检查是否是截断的JSON，尝试补全
+        if cleaned_response.count('{') > cleaned_response.count('}'):
+            # 缺少结尾花括号，尝试补全
+            missing_braces = cleaned_response.count('{') - cleaned_response.count('}')
+            cleaned_response += '}' * missing_braces
+            logger.info(f"Added {missing_braces} closing braces")
+
+            try:
+                return json.loads(cleaned_response)
+            except json.JSONDecodeError:
+                logger.warning("Failed to fix with closing braces")
+
+        # 尝试提取完整的JSON块
+        json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
+        matches = re.findall(json_pattern, cleaned_response, re.DOTALL)
+
+        for match in matches:
+            try:
+                return json.loads(match)
+            except json.JSONDecodeError:
+                continue
+
+        # 如果都失败了，尝试提取部分有效的JSON
+        try:
+            # 找到第一个 { 和最后一个 }
+            start = cleaned_response.find('{')
+            end = cleaned_response.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                partial_json = cleaned_response[start:end + 1]
+                return json.loads(partial_json)
+        except json.JSONDecodeError:
+            pass
+
+        logger.error(f"All JSON parsing methods failed. Response: {response[:200]}...")
+        return {}

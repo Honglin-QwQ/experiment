@@ -60,7 +60,7 @@ class SystemConfig:
             self.backtest_config = {
                 "fee_rate": 0.0000,
                 "yearly_days": 365,
-                "n_jobs": 16,
+                "n_jobs": 5,
                 "digits": 4,
                 "weight_type": "ts"
             }

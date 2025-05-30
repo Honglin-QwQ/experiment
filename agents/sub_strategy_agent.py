@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 from loguru import logger
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
-from experiment import calculate_factor_returns_blocked
+from experiment import calculate_factor_returns_blocked, normalize_column_parallel_blocked
 
 from scipy import stats
 from agents.base_agent import BaseAgent, Message, MessageType
@@ -58,8 +58,14 @@ class SubStrategyAgent(BaseAgent):
             )
 
             # 应用归一化
+            factor_cols=[f for f in factor_df.columns if f.startswith("F#")]
             logger.info(f"Applying {normalization_config['method']} normalization...")
-            weights_df = self._apply_normalization(factor_df, normalization_config)
+
+
+            weights_df = normalize_column_parallel_blocked(
+                factor_df, factor_cols, method=normalization_config['method'],
+                n_jobs=self.factor_calculator.n_jobs, current_frequency=self.factor_calculator.frequency
+            )
 
             # 计算因子收益
             logger.info("Calculating factor returns...")
@@ -172,12 +178,12 @@ class SubStrategyAgent(BaseAgent):
            - Maps to [0, 1] range
 
         10. **long_only_softmax**: Softmax transformation
-            - Ensures all positive weights
+            - Ensures all positive weights (e.g., A-shares)
             - Emphasizes relative differences
 
         Please consider:
-        - A-shares market cannot short sell (需要正权重)
-        - US equities/futures can have negative weights (可以做空)
+        - only A-shares market cannot short sell (需要正权重)
+        - US equities,futures and crypto market can have negative weights (可以做空)
         - Factor distribution characteristics
         - Risk management requirements
 
@@ -192,6 +198,7 @@ class SubStrategyAgent(BaseAgent):
             }},
             "reasoning": "brief explanation"
         }}
+        CRITICAL: Please ensure the JSON response is complete and properly closed with all necessary closing braces. Do not truncate the response.
         """
 
         response = self.llm_client.generate(

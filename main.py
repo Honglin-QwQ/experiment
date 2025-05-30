@@ -148,11 +148,11 @@ if __name__ == "__main__":
     config = SystemConfig(
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
         models={
-            "pm_agent": "qwen/qwen3-235b-a22b:free",
-            "sub_strategy_agent": "qwen/qwen3-235b-a22b:free",
-            "composite_agent": "qwen/qwen3-235b-a22b:free",
-            "optimization_agent": "qwen/qwen3-235b-a22b:free",
-            "performance_agent": "qwen/qwen3-235b-a22b:free"
+            "pm_agent": "anthropic/claude-3-haiku",
+            "sub_strategy_agent": "anthropic/claude-sonnet-4",
+            "composite_agent": "anthropic/claude-3-haiku",
+            "optimization_agent": "anthropic/claude-3-haiku",
+            "performance_agent": "anthropic/claude-3-haiku"
         }
     )
 
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     # 定义投资者需求
     investor_perspectives = """
-    I hope to construct a quantitative investment portfolio suitable for the U.S. stock market, with the following specific requirements:  
+    I hope to construct a quantitative investment portfolio suitable for the crypto market, with the following specific requirements:  
     1. Target annualized return exceeding 15%.  
     2. Maximum drawdown controlled within 10%.  
     3. Sharpe ratio greater than 1.5.  
@@ -178,21 +178,12 @@ if __name__ == "__main__":
     """
 
     # 投资标的
-    symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "BRK-B", "JPM", "JNJ"]
+    symbols = ['SOLUSDT', 'XRPUSDT', 'BNBUSDT', "LTCUSDT", "AAVEUSDT", "LINKUSDT", "XLMUSDT", "DOGEUSDT",
+         "BCHUSDT", "ADAUSDT", "AVAXUSDT", "ETCUSDT", "TRXUSDT", "FILUSDT", "BTCUSDT", "ETHUSDT"]
 
     # 市场数据（可选）
     market_data = {
-        "current_conditions": {
-            "vix": 18.5,
-            "sp500_pe": 24.3,
-            "fed_rate": 5.25,
-            "inflation": 3.2
-        },
-        "expectations": {
-            "rate_change": "decreasing",
-            "economic_growth": "moderate",
-            "market_sentiment": "cautiously_optimistic"
-        }
+
     }
 
     # 运行系统

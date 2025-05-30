@@ -167,6 +167,7 @@ class PerformanceJudgeAgent(BaseAgent):
                 }}
             ]
         }}
+        CRITICAL: Please ensure the JSON response is complete and properly closed with all necessary closing braces. Do not truncate the response.
         """
 
         response = self.llm_client.generate(
