@@ -3,7 +3,7 @@ import sys
 import time as time_module
 from datetime import timedelta
 
-path_dr = 'C:/Users/Administrator/PycharmProjects'
+path_dr = '/root/autodl-tmp'
 base_compute_frequency = '12小时'
 max_cor = 0.5
 max_read = 5
@@ -665,7 +665,8 @@ def process_single_factor(args):
     try:
         # 动态导入模块
 
-        module_path = f"examples.Streamlit.factor_function_{yinzi}.{function_name}"
+        # module_path = f"examples.Streamlit.factor_function_{yinzi}.{function_name}"
+        module_path = f"factor_function_{yinzi}.{function_name}"
         module = importlib.import_module(module_path)
 
         # 获取并执行同名函数
@@ -1278,10 +1279,12 @@ def run_all_factor_functions(df, yinzi, n_jobs=None, current_frequency='4小时'
     # 如果没有指定并行线程数，则使用CPU核心数-1
     if n_jobs is None:
         n_jobs = max(1, os.cpu_count() - 1)  # type: ignore #
-    df_cols = pd.read_csv(
-        f"{path_dr}/experiment/factor_function_{yinzi}/cols.csv")
-    my_list = df_cols['factor'].tolist()
-    py_files = [f'{f}.py' for f in my_list]
+    # df_cols = pd.read_csv(
+    #     f"{path_dr}/experiment/factor_function_{yinzi}/cols.csv")
+    # my_list = df_cols['factor'].tolist()
+    # py_files = [f'{f}.py' for f in my_list]
+    path = f"{path_dr}/experiment/factor_function_{yinzi}"
+    py_files = [f for f in os.listdir(path) if f.endswith('.py')]
 
     if not py_files:
         return df
@@ -1387,7 +1390,6 @@ def full_feature_engineering(df: pd.DataFrame, n_jobbs, c, yinzi) -> pd.DataFram
 def calculate_factor(frequency, n_jobbs, d, yinzi,sdt,edt):
     """计算所有股票的量价因子"""
     try:
-
         dfk = pd.read_feather(f"{path_dr}/experiment/file/klines_{frequency}_{d}_{yinzi}.feather")
         dfk = full_feature_engineering(dfk, n_jobbs, frequency, yinzi)
 
@@ -2245,36 +2247,36 @@ def generate_strategy_with_blocking(factor_returns_df, factor_metrics_df, factor
 
     filtering_rules = [
         # ('high20_单笔收益', '单笔收益', 20, 0, False),
-        ('high20_年化', '年化', 20, 0, False),
-        ('high20_夏普', '夏普', 20, 0, False),
+        ('high20_Annual Return', 'Annual Return', 20, 0, False),
+        ('high20_Sharpe Ratio', 'Sharpe Ratio', 20, 0, False),
         ('high20_日赢面', '日赢面', 20, 0, False),
 
         # 5. 平衡型筛选组合
-        ('balanced_收益风险', '夏普', 25, 0, False),  # 使用balance_strategy处理
+        ('balanced_收益风险', 'Sharpe Ratio', 25, 0, False),  # 使用balance_strategy处理
 
         # 6. 多维度组合筛选
-        ('multi_dim_alpha', '夏普', 25, 0, False),  # 使用multi_dim_strategy处理
-        ('multi_dim_stable', '夏普', 25, 0, False),  # 使用multi_dim_strategy处理
+        ('multi_dim_alpha', 'Sharpe Ratio', 25, 0, False),  # 使用multi_dim_strategy处理
+        ('multi_dim_stable', 'Sharpe Ratio', 25, 0, False),  # 使用multi_dim_strategy处理
 
         # 高稳定性高收益组合
-        ('balanced_stable_高收益', '夏普', 25, 0, False),
-        ('balanced_stable_稳健', '夏普', 25, 0, False)  # 结合高日胜率、高日盈面、高非零覆盖
-        # ('balanced_stable_低风险', '夏普', 30, 0, False),         # 结合低回撤、低波动、高胜率
+        ('balanced_stable_高收益', 'Sharpe Ratio', 25, 0, False),
+        ('balanced_stable_稳健', 'Sharpe Ratio', 25, 0, False)  # 结合高Daily Win Rate、高日盈面、高非零覆盖
+        # ('balanced_stable_低风险', 'Sharpe Ratio', 30, 0, False),         # 结合低回撤、低波动、高胜率
 
         # # 风险调整收益组合
-        # ('balanced_risk_adj_收益', '夏普', 30, 0, False),         # 结合高夏普、高卡玛、低回撤风险
+        # ('balanced_risk_adj_收益', 'Sharpe Ratio', 30, 0, False),         # 结合高Sharpe Ratio、高卡玛、低回撤风险
 
         # # 综合评分组合
-        # ('balanced_score_alpha', '夏普', 30, 0, False),           # 结合年化、夏普、卡玛、日盈面
-        # ('balanced_score_stable', '夏普', 30, 0, False),          # 结合胜率、非零覆盖、回撤风险、波动率
+        # ('balanced_score_alpha', 'Sharpe Ratio', 30, 0, False),           # 结合Annual Return、Sharpe Ratio、卡玛、日盈面
+        # ('balanced_score_stable', 'Sharpe Ratio', 30, 0, False),          # 结合胜率、非零覆盖、回撤风险、波动率
         # # 防御性组合
-        # ('balanced_defensive', '夏普', 30, 0, False),             # 结合低回撤、低波动、高胜率
+        # ('balanced_defensive', 'Sharpe Ratio', 30, 0, False),             # 结合低回撤、低波动、高胜率
         # # 进攻性组合
-        # ('balanced_aggressive', '夏普', 30, 0, False),            # 结合高年化、高夏普、高卡玛
+        # ('balanced_aggressive', 'Sharpe Ratio', 30, 0, False),            # 结合高Annual Return、高Sharpe Ratio、高卡玛
         # # 高频交易特征
-        # ('high_freq', '夏普', 30, 0, False),             # 结合高胜率、高非零覆盖、高日盈面
+        # ('high_freq', 'Sharpe Ratio', 30, 0, False),             # 结合高胜率、高非零覆盖、高日盈面
         # # 低频交易特征
-        # ('low_freq', '夏普', 30, 0, False),              # 结合高夏普、高卡玛、低波动
+        # ('low_freq', 'Sharpe Ratio', 30, 0, False),              # 结合高Sharpe Ratio、高卡玛、低波动
     ]
 
     strategy_returns_df = pd.DataFrame()
@@ -2310,8 +2312,8 @@ def generate_strategy_with_blocking(factor_returns_df, factor_metrics_df, factor
         if len(selected_factors) > 0:
             method_list = [
                 {'m': '单笔收益', 'r': False},
-                {'m': '夏普', 'r': False},
-                {'m': '最大回撤', 'r': True},
+                {'m': 'Sharpe Ratio', 'r': False},
+                {'m': 'Maximum Drawdown', 'r': True},
             ]
 
             # 处理每种权重方法
@@ -2746,35 +2748,35 @@ def filter_factor(factor_returns_df, factor_metrics_df):
     # 扩展筛选规则
     filtering_rules = [
         ('high20_单笔收益', '单笔收益', 20, 0, False),
-        ('high20_年化', '年化', 20, 0, False),
-        ('high20_夏普', '夏普', 20, 0, False),
+        ('high20_Annual Return', 'Annual Return', 20, 0, False),
+        ('high20_Sharpe Ratio', 'Sharpe Ratio', 20, 0, False),
         ('high20_日赢面', '日赢面', 20, 0, False),
 
         # 5. 平衡型筛选组合
-        ('balanced_收益风险', '夏普', 30, 0, False),  # 使用balance_strategy处理
+        ('balanced_收益风险', 'Sharpe Ratio', 30, 0, False),  # 使用balance_strategy处理
 
         # 6. 多维度组合筛选
-        ('multi_dim_alpha', '夏普', 20, 0, False),  # 使用multi_dim_strategy处理
-        ('multi_dim_stable', '夏普', 20, 0, False),  # 使用multi_dim_strategy处理
+        ('multi_dim_alpha', 'Sharpe Ratio', 20, 0, False),  # 使用multi_dim_strategy处理
+        ('multi_dim_stable', 'Sharpe Ratio', 20, 0, False),  # 使用multi_dim_strategy处理
 
         # 高稳定性高收益组合
-        ('balanced_stable_高收益', '夏普', 30, 0, False),  # 结合高日胜率、高日盈面、高非零覆盖
-        # ('balanced_stable_低风险', '夏普', 30, 0, False),         # 结合低回撤、低波动、高胜率
+        ('balanced_stable_高收益', 'Sharpe Ratio', 30, 0, False),  # 结合高Daily Win Rate、高日盈面、高非零覆盖
+        # ('balanced_stable_低风险', 'Sharpe Ratio', 30, 0, False),         # 结合低回撤、低波动、高胜率
 
         # # 风险调整收益组合
-        # ('balanced_risk_adj_收益', '夏普', 30, 0, False),         # 结合高夏普、高卡玛、低回撤风险
+        # ('balanced_risk_adj_收益', 'Sharpe Ratio', 30, 0, False),         # 结合高Sharpe Ratio、高卡玛、低回撤风险
 
         # # 综合评分组合
-        # ('balanced_score_alpha', '夏普', 30, 0, False),           # 结合年化、夏普、卡玛、日盈面
-        # ('balanced_score_stable', '夏普', 30, 0, False),          # 结合胜率、非零覆盖、回撤风险、波动率
+        # ('balanced_score_alpha', 'Sharpe Ratio', 30, 0, False),           # 结合Annual Return、Sharpe Ratio、卡玛、日盈面
+        # ('balanced_score_stable', 'Sharpe Ratio', 30, 0, False),          # 结合胜率、非零覆盖、回撤风险、波动率
         # # 防御性组合
-        # ('balanced_defensive', '夏普', 30, 0, False),             # 结合低回撤、低波动、高胜率
+        # ('balanced_defensive', 'Sharpe Ratio', 30, 0, False),             # 结合低回撤、低波动、高胜率
         # # 进攻性组合
-        # ('balanced_aggressive', '夏普', 30, 0, False),            # 结合高年化、高夏普、高卡玛
+        # ('balanced_aggressive', 'Sharpe Ratio', 30, 0, False),            # 结合高Annual Return、高Sharpe Ratio、高卡玛
         # # 高频交易特征
-        # ('high_freq', '夏普', 30, 0, False),             # 结合高胜率、高非零覆盖、高日盈面
+        # ('high_freq', 'Sharpe Ratio', 30, 0, False),             # 结合高胜率、高非零覆盖、高日盈面
         # # 低频交易特征
-        # ('low_freq', '夏普', 30, 0, False),              # 结合高夏普、高卡玛、低波动
+        # ('low_freq', 'Sharpe Ratio', 30, 0, False),              # 结合高Sharpe Ratio、高卡玛、低波动
     ]
 
     # 存储筛选结果
@@ -2815,9 +2817,9 @@ def balance_strategy(factor_metrics_df, strategy_name, n_factors, factor_returns
     if strategy_name == 'balanced_收益风险':
 
         df_score = factor_metrics_df.copy()
-        df_score['sharpe_rank'] = df_score['夏普'].rank(ascending=False)
+        df_score['sharpe_rank'] = df_score['Sharpe Ratio'].rank(ascending=False)
         df_score['edge_rank'] = df_score['日赢面'].rank(ascending=False)
-        df_score['dd_rank'] = df_score['最大回撤'].rank(ascending=True)
+        df_score['dd_rank'] = df_score['Maximum Drawdown'].rank(ascending=True)
 
         # 计算总得分（可以调整权重）
         df_score['total_score'] = (
@@ -2832,9 +2834,9 @@ def balance_strategy(factor_metrics_df, strategy_name, n_factors, factor_returns
         return correlation_filter(top_factors, n_factors, factor_returns_df)
     elif strategy_name == 'balanced_stable_稳健':
         df_score = factor_metrics_df.copy()
-        df_score['dd_rank'] = df_score['最大回撤'].rank(ascending=True)
-        df_score['sharpe_rank'] = df_score['夏普'].rank(ascending=False)
-        df_score['return_rank'] = df_score['年化'].rank(ascending=False)
+        df_score['dd_rank'] = df_score['Maximum Drawdown'].rank(ascending=True)
+        df_score['sharpe_rank'] = df_score['Sharpe Ratio'].rank(ascending=False)
+        df_score['return_rank'] = df_score['Annual Return'].rank(ascending=False)
         df_score['dan_rank'] = df_score['单笔收益'].rank(ascending=False)
         df_score['total_score'] = (
                 df_score['dd_rank'] * 0.3 +
@@ -2847,8 +2849,8 @@ def balance_strategy(factor_metrics_df, strategy_name, n_factors, factor_returns
         return correlation_filter(top_factors, n_factors, factor_returns_df)
     elif strategy_name == 'balanced_stable_高收益':
         df_score = factor_metrics_df.copy()
-        df_score['dd_rank'] = df_score['最大回撤'].rank(ascending=True)
-        df_score['return_rank'] = df_score['年化'].rank(ascending=False)
+        df_score['dd_rank'] = df_score['Maximum Drawdown'].rank(ascending=True)
+        df_score['return_rank'] = df_score['Annual Return'].rank(ascending=False)
         df_score['dan_rank'] = df_score['单笔收益'].rank(ascending=False)
         df_score['total_score'] = (
                 df_score['dd_rank'] * 0.3 +
@@ -2868,7 +2870,7 @@ def multi_dimensional_strategy(factor_metrics_df, strategy_name, n_factors, fact
     if strategy_name == 'multi_dim_alpha':
         # 创建综合评分
         # 1. 标准化各指标
-        metrics_to_use = ['年化', '夏普', '单笔收益']
+        metrics_to_use = ['Annual Return', 'Sharpe Ratio', '单笔收益']
         df_score = factor_metrics_df.copy()
 
         # 对正向指标进行排名（越高越好）
@@ -2876,7 +2878,7 @@ def multi_dimensional_strategy(factor_metrics_df, strategy_name, n_factors, fact
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=False)
 
         # 对负向指标进行排名（越低越好）
-        for metric in ['最大回撤', '下行波动率']:
+        for metric in ['Maximum Drawdown', 'Downside Volatility']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=True)
 
         # 2. 计算综合得分
@@ -2894,11 +2896,11 @@ def multi_dimensional_strategy(factor_metrics_df, strategy_name, n_factors, fact
         df_score = factor_metrics_df.copy()
 
         # 对正向指标进行排名
-        for metric in ['夏普', '日胜率', '新高占比', '年化']:
+        for metric in ['Sharpe Ratio', 'Daily Win Rate', '新高占比', 'Annual Return']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=False)
 
         # 对负向指标进行排名
-        for metric in ['最大回撤', '新高间隔']:
+        for metric in ['Maximum Drawdown', '新高间隔']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=True)
 
         # 计算综合得分
@@ -2915,11 +2917,11 @@ def multi_dimensional_strategy(factor_metrics_df, strategy_name, n_factors, fact
         df_score = factor_metrics_df.copy()
 
         # 对正向指标进行排名
-        for metric in ['夏普', '日胜率', '单笔收益', '年化']:
+        for metric in ['Sharpe Ratio', 'Daily Win Rate', '单笔收益', 'Annual Return']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=False)
         df_score[f'单笔收益_rank']=2 * df_score[f'单笔收益_rank']
         # 对负向指标进行排名
-        for metric in ['最大回撤']:
+        for metric in ['Maximum Drawdown']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=True)
 
         # 计算综合得分
@@ -2936,11 +2938,11 @@ def multi_dimensional_strategy(factor_metrics_df, strategy_name, n_factors, fact
         df_score = factor_metrics_df.copy()
 
         # 对正向指标进行排名
-        for metric in ['夏普', '日胜率', '单笔收益', '年化']:
+        for metric in ['Sharpe Ratio', 'Daily Win Rate', '单笔收益', 'Annual Return']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=False)
 
         # 对负向指标进行排名
-        for metric in ['最大回撤']:
+        for metric in ['Maximum Drawdown']:
             df_score[f'{metric}_rank'] = df_score[metric].rank(ascending=True)
 
         # 计算综合得分
@@ -2992,20 +2994,20 @@ class factor_to_strategy():
 
         filtering_rules = [
             # ('high20_单笔收益', '单笔收益', 20, 0, False),
-            ('high20_年化', '年化', 20, 0, False),
-            ('high20_夏普', '夏普', 20, 0, False),
+            ('high20_Annual Return', 'Annual Return', 20, 0, False),
+            ('high20_Sharpe Ratio', 'Sharpe Ratio', 20, 0, False),
             ('high20_日赢面', '日赢面', 20, 0, False),
 
             # 5. 平衡型筛选组合
-            ('balanced_收益风险', '夏普', 25, 0, False),  # 使用balance_strategy处理
+            ('balanced_收益风险', 'Sharpe Ratio', 25, 0, False),  # 使用balance_strategy处理
 
             # 6. 多维度组合筛选
-            ('multi_dim_alpha', '夏普', 25, 0, False),  # 使用multi_dim_strategy处理
-            ('multi_dim_stable', '夏普', 25, 0, False),
-            ('multi_dim_dan', '夏普', 25, 0, False), # 使用multi_dim_strategy处理
+            ('multi_dim_alpha', 'Sharpe Ratio', 25, 0, False),  # 使用multi_dim_strategy处理
+            ('multi_dim_stable', 'Sharpe Ratio', 25, 0, False),
+            ('multi_dim_dan', 'Sharpe Ratio', 25, 0, False), # 使用multi_dim_strategy处理
 
             # 高稳定性高收益组合
-            ('balanced_stable_高收益', '夏普', 25, 0, False),  # 结合高日胜率、高日盈面、高非零覆盖
+            ('balanced_stable_高收益', 'Sharpe Ratio', 25, 0, False),  # 结合高Daily Win Rate、高日盈面、高非零覆盖
 
         ]
 
@@ -3108,7 +3110,7 @@ class factor_to_strategy():
                 if len(selected_factors) > 0:
                     method_list = [
                         {'m': '单笔收益', 'r': False},
-                        {'m': '夏普', 'r': False},
+                        {'m': 'Sharpe Ratio', 'r': False},
                         {'m': 'equal', 'r': True},
                     ]
 
@@ -3529,7 +3531,7 @@ class factor_to_strategy():
         使用多种优化模型和参数优化来找到每个因子组的最优权重
 
         采用以下策略：
-        1. 多种优化模型比较（最大夏普比率、最小CVaR、方差优化等）
+        1. 多种优化模型比较（最大Sharpe Ratio比率、最小CVaR、方差优化等）
         2. 正则化参数优化（L1和L2正则化）
         3. 滚动窗口交叉验证
         4. 参数网格搜索
@@ -3582,10 +3584,10 @@ class factor_to_strategy():
             X_test1 = df[df.index > pd.to_datetime('2023-10-01')].copy()
             # 定义不同的模型
             models = {
-                # 1. 最大夏普比率模型
+                # 1. 最大Sharpe Ratio比率模型
                 "MaxSharpe": MeanRisk(
                     risk_measure=RiskMeasure.STANDARD_DEVIATION,
-                    objective_function=ObjectiveFunction.MAXIMIZE_RATIO,  # 添加年化天数
+                    objective_function=ObjectiveFunction.MAXIMIZE_RATIO,  # 添加Annual Return天数
                     portfolio_params=dict(name="Max Sharpe")
                 ),
                 "MaxSharpe_shrinkage": MeanRisk(
@@ -4191,6 +4193,3 @@ if __name__ == "__main__":
                             c.evaluate_factor()
                             c.generate_simple_strategy('rolling', 4, 720, 720, selec)
                             # c.optimize_factor_weights()
-
-
-

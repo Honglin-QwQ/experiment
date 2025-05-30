@@ -213,7 +213,7 @@ class WeightBacktest:
         self.symbols = list(self.dfw["symbol"].unique().tolist())
         self._dailys = None
         self.yearly_days = kwargs.pop("yearly_days", 252)
-        self.results = self.backtest(n_jobs=kwargs.pop("n_jobs", 1))
+        self.results = self.backtest(n_jobs=kwargs.pop("n_jobs", 16))
 
     @property
     def stats(self):
@@ -426,7 +426,7 @@ class WeightBacktest:
 
         pairs, opens = [], []
         for op in operates:
-            print(op)
+            # print(op)
             if op["operate"] in ["开多", "开空"]:
                 opens.append(op)
                 continue
@@ -464,7 +464,6 @@ class WeightBacktest:
         return symbol, {"daily": daily, "pairs": pairs}
 
     def backtest(self, n_jobs=1):
-
         n_jobs = min(n_jobs, cpu_count())
         logger.info(f"n_jobs={n_jobs}，将使用 {n_jobs} 个进程进行回测")
 
@@ -521,5 +520,3 @@ class WeightBacktest:
 
         res["绩效评价"] = stats
         return res
-
-

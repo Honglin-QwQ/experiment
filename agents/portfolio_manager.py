@@ -4,10 +4,10 @@ from typing import Dict, Any, Optional, List
 import pandas as pd
 from dataclasses import dataclass
 from loguru import logger
-from agents.base_agnet import BaseAgent, Message, MessageType
+from agents.base_agent import BaseAgent, Message, MessageType
 from config.system_config import SystemConfig, MarketType
 from config.system_config import PromptTemplates
-from llm.llm_client import OpenRouterClient
+from llm.llm_client import OpenRouterClient, parse_json_response
 
 
 @dataclass
@@ -67,7 +67,7 @@ class PortfolioManagerAgent(BaseAgent):
         Current Market Conditions:
         {json.dumps(market_data, indent=2)}
 
-        Please provide the SSM in the following JSON format:
+        Please provide the SSM in the following JSON format (in English):
         {{
             "target_metrics": {{
                 "annualized_return": {{"operator": ">", "value": 0.15}},
@@ -92,7 +92,9 @@ class PortfolioManagerAgent(BaseAgent):
             conversation_id=message.conversation_id
         )
 
-        ssm_dict = self.llm_client.parse_json_response(response.content)
+        # ssm_dict = self.llm_client.parse_json_response(response.content)
+        ssm_dict = parse_json_response(response.content)
+
 
         # 创建SSM对象
         self.current_ssm = StructuredStrategyMandate(
@@ -177,7 +179,8 @@ class PortfolioManagerAgent(BaseAgent):
             conversation_id=message.conversation_id
         )
 
-        composite_config = self.llm_client.parse_json_response(response.content)
+        # composite_config = self.llm_client.parse_json_response(response.content)
+        composite_config = parse_json_response(response.content)
 
         return self.send_message(
             receiver="CompositeStrategyAgent",
@@ -236,7 +239,8 @@ class PortfolioManagerAgent(BaseAgent):
             conversation_id=message.conversation_id
         )
 
-        optimization_config = self.llm_client.parse_json_response(response.content)
+        # optimization_config = self.llm_client.parse_json_response(response.content)
+        optimization_config = parse_json_response(response.content)
 
         return self.send_message(
             receiver="OptimizationAgent",
@@ -339,7 +343,9 @@ class PortfolioManagerAgent(BaseAgent):
             model=self.config.models["pm_agent"]
         )
 
-        refinement = self.llm_client.parse_json_response(response.content)
+        # refinement = self.llm_client.parse_json_response(response.content)
+        refinement = parse_json_response(response.content)
+
         target_agent = refinement.get("target_agent", "SubStrategyAgent")
 
         # 根据目标智能体发送改进请求
