@@ -89,6 +89,32 @@ class SubStrategyAgent(BaseAgent):
                 content={"error": str(e)}
             )
 
+    def _validate_config_method(self, config, logger, default_method="zscore"):
+        valid_methods = [
+            "zscore", "zscore_clip", "zscore_maxmin", "max_min", "sum",
+            "rank_s", "rank_balanced", "rank_c", "long_only_zscore", "long_only_softmax"
+        ]
+        if config.get("method") not in valid_methods:
+            logger.warning(f"Invalid method: {config.get('method')}, defaulting to {default_method}")
+            config["method"] = default_method
+        return config
+
+
+    def get_default_config(self, market_type):
+        if market_type == "A_SHARES":
+            return {
+                "method": "long_only_zscore",
+                "params": {"winsorize": True, "q": 0.05},
+                "reasoning": "Default for A-shares market"
+            }
+        else:
+            return {
+                "method": "zscore",
+                "params": {"winsorize": True, "q": 0.05},
+                "reasoning": "Default for other markets"
+            }
+
+
     def _determine_normalization_method(self, ssm: Dict[str, Any], market_type: str,
                                         factor_df: pd.DataFrame, iteration: int,
                                         refinement: Dict[str, Any]) -> Dict[str, Any]:
@@ -154,7 +180,7 @@ class SubStrategyAgent(BaseAgent):
         - Factor distribution characteristics
         - Risk management requirements
 
-        Respond in JSON format:
+        Respond in JSON format (in English):
         {{
             "method": "method_name",
             "params": {{
@@ -174,32 +200,53 @@ class SubStrategyAgent(BaseAgent):
             temperature=self.config.llm_config["temperature"]
         )
 
+        # try:
+        #     # decoder = json.JSONDecoder()
+        #     # config, index = decoder.raw_decode(response.content)
+        #     config = json.loads(response.content)
+        #     # 验证方法名
+        #     valid_methods = [
+        #         "zscore", "zscore_clip", "zscore_maxmin", "max_min", "sum",
+        #         "rank_s", "rank_balanced", "rank_c", "long_only_zscore", "long_only_softmax"
+        #     ]
+        #     if config["method"] not in valid_methods:
+        #         logger.warning(f"Invalid method: {config['method']}, defaulting to zscore")
+        #         config["method"] = "zscore"
+        #     return config
+        # except:
+        #     logger.warning("Failed to parse LLM response, using default config")
+        #     # 根据市场类型选择默认方法
+        #     if market_type == "A_SHARES":
+        #         return {
+        #             "method": "long_only_zscore",
+        #             "params": {"winsorize": True, "q": 0.05},
+        #             "reasoning": "Default for A-shares market"
+        #         }
+        #     else:
+        #         return {
+        #             "method": "zscore",
+        #             "params": {"winsorize": True, "q": 0.05},
+        #             "reasoning": "Default for other markets"
+        #         }
+
         try:
+            # 第一种解析方式：使用 json.loads
             config = json.loads(response.content)
-            # 验证方法名
-            valid_methods = [
-                "zscore", "zscore_clip", "zscore_maxmin", "max_min", "sum",
-                "rank_s", "rank_balanced", "rank_c", "long_only_zscore", "long_only_softmax"
-            ]
-            if config["method"] not in valid_methods:
-                logger.warning(f"Invalid method: {config['method']}, defaulting to zscore")
-                config["method"] = "zscore"
-            return config
-        except:
-            logger.warning("Failed to parse LLM response, using default config")
-            # 根据市场类型选择默认方法
-            if market_type == "A_SHARES":
-                return {
-                    "method": "long_only_zscore",
-                    "params": {"winsorize": True, "q": 0.05},
-                    "reasoning": "Default for A-shares market"
-                }
+        except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e1:
+            try:
+                # 第二种解析方式：使用 raw_decode（适用于含多余文本的响应）
+                decoder = json.JSONDecoder()
+                config, index = decoder.raw_decode(response.content)
+            except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e2:
+                # 两种方式都失败，使用默认配置
+                logger.warning(f"Failed to parse JSON using both methods. Error 1: {e1}, Error 2: {e2}")
+                return self.get_default_config(market_type)
             else:
-                return {
-                    "method": "zscore",
-                    "params": {"winsorize": True, "q": 0.05},
-                    "reasoning": "Default for other markets"
-                }
+                # 使用统一校验逻辑处理 config
+                return self._validate_config_method(config, logger)
+        else:
+            # 第一种方式成功，继续校验
+            return self._validate_config_method(config, logger)
 
     def _apply_normalization(self, df: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
         """应用向量化的归一化方法"""
@@ -388,10 +435,10 @@ class SubStrategyAgent(BaseAgent):
         for _, row in factor_metrics.iterrows():
             factor_name = row['factor']
             strategies[factor_name] = {
-                'annual_return': row.get('年化', 0),
-                'sharpe_ratio': row.get('夏普', 0),
-                'max_drawdown': row.get('最大回撤', 0),
-                'win_rate': row.get('日胜率', 0),
-                'calmar_ratio': row.get('卡玛', 0)
+                'annual_return': row.get('Annual Return', 0),
+                'sharpe_ratio': row.get('Sharpe Ratio', 0),
+                'max_drawdown': row.get('Maximum Drawdown', 0),
+                'win_rate': row.get('Daily Win Rate', 0),
+                'calmar_ratio': row.get('Calmar Ratio', 0)
             }
         return strategies

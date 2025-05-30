@@ -67,7 +67,7 @@ class PortfolioManagerAgent(BaseAgent):
         Current Market Conditions:
         {json.dumps(market_data, indent=2)}
 
-        Please provide the SSM in the following JSON format:
+        Please provide the SSM in the following JSON format (in English):
         {{
             "target_metrics": {{
                 "annualized_return": {{"operator": ">", "value": 0.15}},

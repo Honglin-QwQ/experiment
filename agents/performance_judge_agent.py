@@ -19,16 +19,15 @@ class PerformanceJudgeAgent(BaseAgent):
         super().__init__(name, llm_client, config)
         self.backtest_system = backtest_system
         self.defect_categories = {
-            "EXCESSIVE_DRAWDOWN": "最大回撤超过限制",
-            "LOW_SHARPE": "夏普比率过低",
-            "INSUFFICIENT_RETURN": "收益未达到目标",
-            "HIGH_VOLATILITY": "波动率过高",
-            "POOR_WIN_RATE": "胜率过低",
-            "FACTOR_DECAY": "因子衰减",
-            "CONCENTRATION_RISK": "集中度风险",
-            "HIGH_TURNOVER": "换手率过高",
-            "CORRELATION_RISK": "相关性风险",
-            "TAIL_RISK": "尾部风险"
+            "EXCESSIVE_DRAWDOWN": "Maximum drawdown exceeds limit",
+            "LOW_SHARPE": "Sharpe ratio is too low",
+            "INSUFFICIENT_RETURN": "Return did not meet target",
+            "HIGH_VOLATILITY": "Volatility is too high",
+            "POOR_WIN_RATE": "Win rate is too low",
+            "FACTOR_DECAY": "Factor decay",
+            "HIGH_TURNOVER": "Turnover rate is too high",
+            "CORRELATION_RISK": "Correlation risk",
+            "TAIL_RISK": "Tail risk"
         }
 
     def get_system_prompt(self) -> str:
@@ -127,7 +126,7 @@ class PerformanceJudgeAgent(BaseAgent):
         portfolio = strategy.get("portfolio", None)
 
         # 准备回测数据
-        if not performance.empty:
+        if not performance:
             backtest_results=performance
         else:
             # 使用提供的portfolio对象
@@ -155,7 +154,7 @@ class PerformanceJudgeAgent(BaseAgent):
         - Duration (in days)
         - Specific risks to test
 
-        Format as JSON:
+        Format as JSON, in English:
         {{
             "scenarios": [
                 {{
@@ -177,7 +176,9 @@ class PerformanceJudgeAgent(BaseAgent):
             temperature=self.config.llm_config["temperature"]
         )
 
-        scenarios = self.llm_client.parse_json_response(response.content)
+        # scenarios = self.llm_client.parse_json_response(response.content)
+        decoder = json.JSONDecoder()
+        scenarios, index = decoder.raw_decode(response.content)
 
         # 执行压力测试
         stress_results = {}
@@ -215,9 +216,9 @@ class PerformanceJudgeAgent(BaseAgent):
 
             # 映射指标名称
             metric_mapping = {
-                "annualized_return": "年化",
-                "sharpe_ratio": "夏普",
-                "max_drawdown": "最大回撤"
+                "annualized_return": "Annual Return",
+                "sharpe_ratio": "Sharpe Ratio",
+                "max_drawdown": "Maximum Drawdown"
             }
 
             actual_metric = metric_mapping.get(metric, metric)
@@ -260,20 +261,20 @@ class PerformanceJudgeAgent(BaseAgent):
         defects = []
 
         # 基于性能指标识别缺陷
-        if performance_metrics.get("最大回撤", 0) > 0.15:
+        if performance_metrics.get("Maximum Drawdown", 0) > 0.15:
             defects.append("EXCESSIVE_DRAWDOWN")
 
-        if performance_metrics.get("夏普", 0) < 1.0:
+        if performance_metrics.get("Sharpe Ratio", 0) < 1.0:
             defects.append("LOW_SHARPE")
 
-        if performance_metrics.get("年化", 0) < ssm.get("target_metrics", {}).get("annualized_return", {}).get("value",
+        if performance_metrics.get("Annual Return", 0) < ssm.get("target_metrics", {}).get("annualized_return", {}).get("value",
                                                                                                                0.10):
             defects.append("INSUFFICIENT_RETURN")
 
-        if performance_metrics.get("年化波动率", 0) > 0.25:
+        if performance_metrics.get("Annualized Volatility", 0) > 0.25:
             defects.append("HIGH_VOLATILITY")
 
-        if performance_metrics.get("日胜率", 0) < 0.45:
+        if performance_metrics.get("Daily Win Rate", 0) < 0.45:
             defects.append("POOR_WIN_RATE")
 
         # 基于压力测试结果识别缺陷
@@ -335,7 +336,7 @@ class PerformanceJudgeAgent(BaseAgent):
         score -= len(defects) * 10
 
         # 基于性能指标调整
-        sharpe = performance_metrics.get("夏普", 0)
+        sharpe = performance_metrics.get("Sharpe Ratio", 0)
         if sharpe > 2.0:
             score += 10
         elif sharpe < 1.0:
@@ -355,16 +356,16 @@ class PerformanceJudgeAgent(BaseAgent):
         """识别策略优势"""
         strengths = []
 
-        if performance_metrics.get("夏普", 0) > 1.5:
+        if performance_metrics.get("Sharpe Ratio", 0) > 1.5:
             strengths.append("优秀的风险调整收益")
 
-        if performance_metrics.get("最大回撤", 1) < 0.10:
+        if performance_metrics.get("Maximum Drawdown", 1) < 0.10:
             strengths.append("良好的下行风险控制")
 
-        if performance_metrics.get("日胜率", 0) > 0.55:
+        if performance_metrics.get("Daily Win Rate", 0) > 0.55:
             strengths.append("稳定的盈利能力")
 
-        if performance_metrics.get("卡玛", 0) > 2.0:
+        if performance_metrics.get("Calmar Ratio", 0) > 2.0:
             strengths.append("优秀的回撤收益比")
 
         return strengths
@@ -397,14 +398,14 @@ class PerformanceJudgeAgent(BaseAgent):
 
         # 简化示例
         results = {
-            "年化": 0.15,
-            "夏普": 1.5,
-            "最大回撤": 0.12,
-            "日胜率": 0.52,
-            "卡玛": 1.25,
-            "年化波动率": 0.18,
-            "下行波动率": 0.12,
-            "非零覆盖": 0.85
+            "Annual Return": 0.15,
+            "Sharpe ratio": 1.5,
+            "Maximum drawdown": 0.12,
+            "Daily win rate": 0.52,
+            "Calmar ratio": 1.25,
+            "Annualized Volatility": 0.18,
+            "Downside Volatility": 0.12,
+            "Non-zero Coverage": 0.85
         }
 
         return results
@@ -416,11 +417,11 @@ class PerformanceJudgeAgent(BaseAgent):
 
         try:
             return {
-                "年化": getattr(portfolio, 'annualized_mean', 0),
-                "夏普": getattr(portfolio, 'annualized_sharpe_ratio', 0),
-                "最大回撤": getattr(portfolio, 'max_drawdown', 0),
-                "年化波动率": getattr(portfolio, 'annualized_standard_deviation', 0),
-                "卡玛": getattr(portfolio, 'calmar_ratio', 0)
+                "Annual Return": getattr(portfolio, 'annualized_mean', 0),
+                "Sharpe Ratio": getattr(portfolio, 'annualized_sharpe_ratio', 0),
+                "Maximum Drawdown": getattr(portfolio, 'max_drawdown', 0),
+                "Annualized Volatility": getattr(portfolio, 'annualized_standard_deviation', 0),
+                "Calmar Ratio": getattr(portfolio, 'calmar_ratio', 0)
             }
         except:
             return {}

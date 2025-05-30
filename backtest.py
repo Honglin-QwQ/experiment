@@ -464,7 +464,6 @@ class WeightBacktest:
         return symbol, {"daily": daily, "pairs": pairs}
 
     def backtest(self, n_jobs=1):
-
         n_jobs = min(n_jobs, cpu_count())
         logger.info(f"n_jobs={n_jobs}，将使用 {n_jobs} 个进程进行回测")
 

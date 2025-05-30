@@ -168,13 +168,13 @@ if __name__ == "__main__":
 
     # 定义投资者需求
     investor_perspectives = """
-    我希望构建一个适合美股市场的量化投资组合，具体要求如下：
-    1. 目标年化收益率超过15%
-    2. 最大回撤控制在10%以内
-    3. 夏普比率大于1.5
-    4. 投资标的包括标普500成分股
-    5. 考虑当前美联储可能降息的宏观环境
-    6. 希望策略在不同市场环境下都有稳定表现
+    I hope to construct a quantitative investment portfolio suitable for the U.S. stock market, with the following specific requirements:  
+    1. Target annualized return exceeding 15%.  
+    2. Maximum drawdown controlled within 10%.  
+    3. Sharpe ratio greater than 1.5.  
+    4. Investment universe includes S&P 500 constituents.  
+    5. Consider the current macro environment of potential Federal Reserve interest rate cuts.  
+    6. Expect the strategy to perform stably across different market conditions.
     """
 
     # 投资标的
