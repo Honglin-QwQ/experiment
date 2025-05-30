@@ -13,7 +13,7 @@ from agents.sub_strategy_agent import SubStrategyAgent
 from agents.composite_strategy_agent import CompositeStrategyAgent
 from agents.optimization_agent import OptimizationAgent
 from agents.performance_judge_agent import PerformanceJudgeAgent
-from agents.base_agnet import Message, MessageType
+from agents.base_agent import Message, MessageType
 
 
 
@@ -146,18 +146,18 @@ if __name__ == "__main__":
 
     # 配置系统
     config = SystemConfig(
-        openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "your-api-key"),
+        openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
         models={
-            "pm_agent": "anthropic/claude-3-opus",
-            "sub_strategy_agent": "openai/gpt-4-turbo",
-            "composite_agent": "anthropic/claude-3-sonnet",
-            "optimization_agent": "openai/gpt-4",
-            "performance_agent": "anthropic/claude-3-opus"
+            "pm_agent": "qwen/qwen3-235b-a22b:free",
+            "sub_strategy_agent": "qwen/qwen3-235b-a22b:free",
+            "composite_agent": "qwen/qwen3-235b-a22b:free",
+            "optimization_agent": "qwen/qwen3-235b-a22b:free",
+            "performance_agent": "qwen/qwen3-235b-a22b:free"
         }
     )
 
     # 初始化因子计算器和回测系统
-    factor_calculator = factor_to_strategy()  # 因子计算器实例
+    factor_calculator = factor_to_strategy(d='spot')  # 因子计算器实例
 
     # 创建系统
     system = MultiAgentPortfolioSystem(
@@ -168,19 +168,19 @@ if __name__ == "__main__":
 
     # 定义投资者需求
     investor_perspectives = """
-    我希望构建一个适合美股市场的量化投资组合，具体要求如下：
-    1. 目标年化收益率超过15%
-    2. 最大回撤控制在10%以内
-    3. 夏普比率大于1.5
-    4. 投资标的包括标普500成分股
-    5. 考虑当前美联储可能降息的宏观环境
-    6. 希望策略在不同市场环境下都有稳定表现
+    I hope to construct a quantitative investment portfolio suitable for the U.S. stock market, with the following specific requirements:  
+    1. Target annualized return exceeding 15%.  
+    2. Maximum drawdown controlled within 10%.  
+    3. Sharpe ratio greater than 1.5.  
+    4. Investment universe includes S&P 500 constituents.  
+    5. Consider the current macro environment of potential Federal Reserve interest rate cuts.  
+    6. Expect the strategy to perform stably across different market conditions.
     """
 
     # 投资标的
     symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "BRK-B", "JPM", "JNJ"]
 
-    # 市场数据
+    # 市场数据（可选）
     market_data = {
         "current_conditions": {
             "vix": 18.5,

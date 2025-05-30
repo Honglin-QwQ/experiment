@@ -1,9 +1,10 @@
-
+import json
+import re
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional, List, Tuple
 from loguru import logger
-from agents.base_agnet import BaseAgent, Message, MessageType
+from agents.base_agent import BaseAgent, Message, MessageType
 
 from config.system_config import SystemConfig
 from config.system_config import PromptTemplates
@@ -129,10 +130,10 @@ class CompositeStrategyAgent(BaseAgent):
 
         # 获取排序权重
         ranking_weights = config.get("ranking_weights", {
-            "sharpe": 0.3,
-            "calmar": 0.2,
-            "annual_return": 0.3,
-            "win_rate": 0.2
+            "夏普": 0.3,
+            "卡玛": 0.2,
+            "年化": 0.3,
+            "日胜率": 0.2
         })
 
         # 使用LLM动态调整策略组合
@@ -152,9 +153,7 @@ class CompositeStrategyAgent(BaseAgent):
                                         config: Dict[str, Any],
                                         ssm: Dict[str, Any]) -> Dict[str, List[str]]:
         """使用LLM生成策略组合"""
-        prompt = f"""
-        Based on the SSM requirements and factor metrics, please design strategy combinations.
-
+        prompt = f"""Based on the SSM requirements and factor metrics, please design strategy combinations.
         SSM Requirements:
         - Target Return: {ssm.get('target_metrics', {}).get('annualized_return', {})}
         - Risk Constraints: {ssm.get('risk_constraints', {})}
@@ -162,10 +161,10 @@ class CompositeStrategyAgent(BaseAgent):
         Available Factors: {len(metrics_df)}
 
         Top performing factors by different metrics:
-        - By Sharpe: {metrics_df.nlargest(5, '夏普')['factor'].tolist()}
-        - By Annual Return: {metrics_df.nlargest(5, '年化')['factor'].tolist()}
-        - By Calmar: {metrics_df.nlargest(5, '卡玛')['factor'].tolist()}
-        - By Win Rate: {metrics_df.nlargest(5, '日胜率')['factor'].tolist()}
+        - By 夏普: {metrics_df.nlargest(5, '夏普')['factor'].tolist()}
+        - By 年化: {metrics_df.nlargest(5, '年化')['factor'].tolist()}
+        - By 卡玛: {metrics_df.nlargest(5, '卡玛')['factor'].tolist()}
+        - By 日胜率: {metrics_df.nlargest(5, '日胜率')['factor'].tolist()}
 
         Please suggest multiple strategy combinations that:
         1. Balance risk and return according to SSM
@@ -185,10 +184,19 @@ class CompositeStrategyAgent(BaseAgent):
             prompt=prompt,
             system_prompt=self.get_system_prompt(),
             model=self.config.models["composite_agent"],
-            temperature=0.5
+            temperature=self.config.llm_config["temperature"],
+            max_tokens=10000,
         )
 
-        strategy_specs = self.llm_client.parse_json_response(response.content)
+        try:
+            # strategy_specs = self.llm_client.parse_json_response(response.content)
+            strategy_specs = json.loads(response.content)
+        except Exception as e:
+            try:
+                decoder = json.JSONDecoder()
+                strategy_specs, index = decoder.raw_decode(response.content)
+            except json.JSONDecodeError as je:
+                raise ValueError("Failed to decode response content.") from je
 
         # 执行策略选择
         strategies = {}
@@ -211,6 +219,7 @@ class CompositeStrategyAgent(BaseAgent):
                     spec.get("weights", []),
                     spec.get("top_n", 30)
                 )
+
 
             # 相关性过滤
             selected = self._correlation_filter(

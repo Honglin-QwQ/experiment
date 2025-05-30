@@ -3,13 +3,17 @@ from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 from enum import Enum
 
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
 
 class MarketType(Enum):
     """市场类型枚举"""
-    US_EQUITIES = "美股"
-    A_SHARES = "A股"
-    FUTURES = "期货"
-    CRYPTO = "数字货币"
+    US_EQUITIES = "US_EQUITIES"
+    A_SHARES = "A_SHARES"
+    FUTURES = "FUTURES"
+    CRYPTO = "CRYPTO"
 
 
 @dataclass
@@ -28,25 +32,35 @@ class SystemConfig:
     # 优化配置
     optimization_config: Dict[str, Any] = None
 
+    # api配置
+    llm_config: Dict[str, Any] = None
+
     # 数据路径配置
     data_path: str = "file/"
     output_path: str = "output/"
 
     def __post_init__(self):
         if self.models is None:
+            # self.models = {
+            #     "pm_agent": "anthropic/claude-3-opus",
+            #     "sub_strategy_agent": "openai/gpt-4-turbo",
+            #     "composite_agent": "anthropic/claude-3-sonnet",
+            #     "optimization_agent": "openai/gpt-4",
+            #     "performance_agent": "anthropic/claude-3-opus"
+            # }
             self.models = {
-                "pm_agent": "anthropic/claude-3-opus",
-                "sub_strategy_agent": "openai/gpt-4-turbo",
-                "composite_agent": "anthropic/claude-3-sonnet",
-                "optimization_agent": "openai/gpt-4",
-                "performance_agent": "anthropic/claude-3-opus"
-            }
+                    "pm_agent": "meta-llama/llama-3.3-8b-instruct:free",
+                    "sub_strategy_agent": "meta-llama/llama-3.3-8b-instruct:free",
+                    "composite_agent": "meta-llama/llama-3.3-8b-instruct:free",
+                    "optimization_agent": "meta-llama/llama-3.3-8b-instruct:free",
+                    "performance_agent": "meta-llama/llama-3.3-8b-instruct:free"
+                }
 
         if self.backtest_config is None:
             self.backtest_config = {
                 "fee_rate": 0.0000,
                 "yearly_days": 365,
-                "n_jobs": 4,
+                "n_jobs": 16,
                 "digits": 4,
                 "weight_type": "ts"
             }
@@ -57,6 +71,11 @@ class SystemConfig:
                 "max_weight": 0.3,
                 "budget": 1.0,
                 "correlation_threshold": 0.7
+            }
+
+        if self.llm_config is None:
+            self.llm_config = {
+                "temperature": 0.0,
             }
 
 
