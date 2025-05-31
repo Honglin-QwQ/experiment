@@ -1,4 +1,5 @@
 import json
+import re
 
 import pandas as pd
 import numpy as np
@@ -316,7 +317,10 @@ class OptimizationAgent(BaseAgent):
             temperature=0.1
         )
 
-        best_name = response.content.strip().strip('"')
+        # best_name = response.content.strip().strip('"')
+        match = re.search(r'"([^"]+)"', response.content.strip().strip('"'))
+        if match:
+            best_name = match.group(1)
 
         # 查找对应的策略
         best_row = strategies_df[strategies_df['combined_name'] == best_name]

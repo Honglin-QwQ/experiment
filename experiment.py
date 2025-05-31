@@ -3,7 +3,7 @@ import sys
 import time as time_module
 from datetime import timedelta
 
-path_dr = 'C:/Users/Administrator/PycharmProjects'
+path_dr = '/root/autodl-tmp'
 base_compute_frequency = '12小时'
 max_cor = 0.5
 max_read = 5

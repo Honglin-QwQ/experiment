@@ -74,7 +74,6 @@ class OpenRouterClient:
                     "HTTP-Referer": "https://quantinvest.ai",
                     "X-Title": "Multi-Agent Portfolio Management System"
                 },
-                response_format={"type": "json_object"},
             )
 
             # 保存对话历史
