@@ -1,6 +1,8 @@
 # main.py
 import os
 import json
+import pickle
+
 import pandas as pd
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -133,8 +135,8 @@ class MultiAgentPortfolioSystem:
         output_path = os.path.join(self.config.output_path, filename)
         os.makedirs(self.config.output_path, exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(self.results, f, ensure_ascii=False, indent=2)
+        with open(output_path, 'wb') as f:
+            pickle.dump(self.results, f)
 
         logger.info(f"Results saved to {output_path}")
 
@@ -194,7 +196,8 @@ if __name__ == "__main__":
     )
 
     # 保存结果
-    system.save_results(f"strategy_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    system.save_results(f"strategy_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl")
+
 
     # 打印结果摘要
     if results.get("status") == "success":
