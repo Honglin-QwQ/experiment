@@ -1,10 +1,14 @@
+import importlib
 import json
+import os
+
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional, List
 from loguru import logger
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
+from factor_analyzer import FactorAnalyzer
 from experiment import calculate_factor_returns_blocked, normalize_column_parallel_blocked
 
 from scipy import stats
@@ -13,7 +17,7 @@ from config.system_config import SystemConfig, MarketType
 from config.system_config import PromptTemplates
 from llm.llm_client import OpenRouterClient
 from llm.llm_client import parse_json_response
-
+from experiment import path_dr
 
 class SubStrategyAgent(BaseAgent):
     """子策略智能体 - 负责因子处理和子策略生成"""
@@ -23,6 +27,7 @@ class SubStrategyAgent(BaseAgent):
         super().__init__(name, llm_client, config)
         self.factor_calculator = factor_calculator
         self.backtest_system = backtest_system
+        self.factor_analyzer= FactorAnalyzer()
 
     def get_system_prompt(self) -> str:
         """获取系统提示词"""
@@ -33,7 +38,36 @@ class SubStrategyAgent(BaseAgent):
         if message.type == MessageType.SUB_STRATEGY_REQUEST:
             return self._handle_sub_strategy_request(message)
         return None
+    def initialize_factor_library(self):
+        """初始化因子库DataFrame"""
+        # 读取所有现有因子并计算结果
+        try:
+            factor_library_df=pd.read_feather(self.factor_calculator.input_file)
+        except FileNotFoundError:
+            all_factors = {}
+            py_file = [f for f in os.listdir('./alpha_101') if f.startswith('factor')]
+            for f in py_file[:]:
+                module_path = f"alpha_101.{f[:-3]}"
+                module = importlib.import_module(module_path)
+                if hasattr(module, f[:-3]):
+                    func = getattr(module, f[:-3])
+                    df = self.factor_analyzer.calculate_factor(func)
+                    #print(self.factor_analyzer.ic(df=df, x_col=f"F#{f[:-3]}#DEFAULT"))
+                    factor_col=f"F#{f[:-3]}#DEFAULT"
+                    if factor_col in df.columns:
+                        all_factors[factor_col] = df[factor_col]
 
+            if all_factors:
+                factor_library_df = pd.DataFrame(all_factors)
+                factor_library_df['dt'] = df['dt']
+                factor_library_df['price']=df['close']
+                factor_library_df['target_1'] = df['n1b']
+                factor_library_df['symbol'] = df['symbol']
+
+            else:
+                # 如果是空的因子库，创建只有索引的DataFrame
+                factor_library_df = pd.DataFrame(columns=['dt', 'symbol'])
+        return factor_library_df
     def _handle_sub_strategy_request(self, message: Message) -> Message:
         """处理子策略请求"""
         try:
@@ -44,7 +78,8 @@ class SubStrategyAgent(BaseAgent):
 
             # 计算因子值
             logger.info("Calculating factor values...")
-            self.factor_calculator.cal_factor()
+            self.factor_calculator.factor_result=self.initialize_factor_library()
+            self.factor_calculator.factor_result.to_feather(self.factor_calculator.input_file)
             # 因子反转
             self.factor_calculator.reverse_factor()
             factor_df = self.factor_calculator.factor_result
@@ -402,20 +437,43 @@ class SubStrategyAgent(BaseAgent):
 
     def _calculate_factor_returns(self, weights_df: pd.DataFrame) -> pd.DataFrame:
         """计算因子收益"""
-        factor_returns = calculate_factor_returns_blocked(
-            df=weights_df,
-            n_jobs=self.config.backtest_config["n_jobs"],
-            current_frequency='4h',
-            split_time=pd.to_datetime('2024-01-01')
-        )
+        try:
+            factor_returns = pd.read_feather(f'{path_dr}/experiment/file/returns_df.feather')
+        except FileNotFoundError:
+            factor_returns = calculate_factor_returns_blocked(
+                df=weights_df,
+                n_jobs=self.config.backtest_config["n_jobs"],
+                current_frequency='4h'
+            )
+            factor_returns.to_feather(f'{path_dr}/experiment/file/returns_df.feather')
         return factor_returns
 
     def _backtest_factors(self, weights_df: pd.DataFrame) -> pd.DataFrame:
         """回测所有因子"""
-        self.factor_metric = self.factor_calculator.evaluate_factor_blocked(
-            weights_df, n_jobs=self.config.backtest_config["n_jobs"],
-            current_frequency='4h'
-        )
+        try:
+            self.factor_metric= pd.read_feather(f'{path_dr}/experiment/file/metric_df.feather')
+        except FileNotFoundError:
+            self.factor_metric = self.factor_calculator.evaluate_factor_blocked(
+                weights_df, n_jobs=self.config.backtest_config["n_jobs"],
+                current_frequency='4h'
+            )
+            self.factor_metric['Annualized Return'] = self.factor_metric['年化']
+            self.factor_metric['Sharpe Ratio'] = self.factor_metric['夏普']
+            self.factor_metric['Calmar Ratio'] = self.factor_metric['卡玛']
+            self.factor_metric['Maximum Drawdown'] = self.factor_metric['最大回撤']
+            self.factor_metric['Daily Win Rate'] = self.factor_metric['日胜率']
+            self.factor_metric['Single Profit'] = self.factor_metric['单笔收益']
+            self.factor_metric['Daily Win Facet'] = self.factor_metric['日赢面']
+            self.factor_metric['New High Percentage'] = self.factor_metric['新高占比']
+            self.factor_metric['New High Interval'] = self.factor_metric['新高间隔']
+            self.factor_metric['Downside Volatility'] = self.factor_metric['下行波动率']
+            self.factor_metric['Daily P/L Ratio'] = self.factor_metric['日盈亏比']
+            self.factor_metric['Annualized Volatility'] = self.factor_metric['年化波动率']
+            self.factor_metric['Trading Win Rate'] = self.factor_metric['下行波动率']
+            self.factor_metric['Holding Time'] = self.factor_metric['持仓K线数']
+            self.factor_metric['Long Percentage'] = self.factor_metric['多头占比']
+            self.factor_metric['Short Percentage'] = self.factor_metric['空头占比']
+            self.factor_metric.to_feather(f'{path_dr}/experiment/file/metric_df.feather')
         return self.factor_metric
 
     def _format_sub_strategies(self, factor_metrics: pd.DataFrame) -> Dict[str, Any]:

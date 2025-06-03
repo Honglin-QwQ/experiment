@@ -28,7 +28,7 @@ class PortfolioManagerAgent(BaseAgent):
         super().__init__(name, llm_client, config)
         self.current_ssm: Optional[StructuredStrategyMandate] = None
         self.iteration_count = 0
-        self.max_iterations = 5
+        self.max_iterations = 1
         self.strategy_history: List[Dict[str, Any]] = []
 
     def get_system_prompt(self) -> str:
