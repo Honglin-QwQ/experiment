@@ -9,7 +9,6 @@ manuscrips/
 *.xlsx
 *.html
 *.png
-*.csv
 *.feather
 *.pkl
 *.zip
