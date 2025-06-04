@@ -222,7 +222,7 @@ class FactorAnalyzer:
                 # 获取股票数据，训练集
                 df = get_stock_data(
                     symbol, 
-                    sdt="19950101",
+                    sdt="20220601",
                     edt="20250601"
                 )
 

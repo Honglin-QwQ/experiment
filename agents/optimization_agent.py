@@ -117,7 +117,7 @@ class OptimizationAgent(BaseAgent):
                 strategy_returns = factor_returns_df[factors]
 
                 # 划分训练集和测试集
-                split_date = pd.Timestamp('2010-01-01')
+                split_date = pd.Timestamp('2024-06-01')
                 train_data = strategy_returns[strategy_returns.index <= split_date]
                 test_data = strategy_returns[strategy_returns.index > split_date]
 

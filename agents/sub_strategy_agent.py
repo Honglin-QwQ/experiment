@@ -75,6 +75,7 @@ class SubStrategyAgent(BaseAgent):
             market_type = message.content.get("market_type", "US_EQUITIES")
             iteration = message.content.get("iteration", 0)
             refinement = message.content.get("refinement", {})
+            symbol = message.content.get("symbols", 'AAPL')
 
             # 计算因子值
             logger.info("Calculating factor values...")
@@ -101,6 +102,22 @@ class SubStrategyAgent(BaseAgent):
                 factor_df, factor_cols, method=normalization_config['method'],
                 n_jobs=self.factor_calculator.n_jobs, current_frequency=self.factor_calculator.frequency
             )
+
+
+            weights_df = weights_df[weights_df['symbol'].isin(symbol)]
+
+            zero_ratios = {}
+            for col in factor_cols:
+                zero_ratio = (weights_df[col] == 0).mean()
+                if zero_ratio > 0.3:  # 如果0值占比超过30%
+                    zero_ratios[col] = zero_ratio
+
+            # 获取需要删除的列名
+            cols_to_drop = list(zero_ratios.keys())
+            existing_cols = [col for col in cols_to_drop if col in weights_df.columns]
+            if existing_cols:
+                weights_df = weights_df.drop(columns=existing_cols)
+            weights_df = weights_df.sort_values(['symbol', 'dt']).reset_index(drop=True)
 
             # 计算因子收益
             logger.info("Calculating factor returns...")
@@ -469,7 +486,7 @@ class SubStrategyAgent(BaseAgent):
             self.factor_metric['Holding Time'] = self.factor_metric['持仓K线数']
             self.factor_metric['Long Percentage'] = self.factor_metric['多头占比']
             self.factor_metric['Short Percentage'] = self.factor_metric['空头占比']
-
+            #self.factor_metric.to_feather(f'{path_dr}/experiment/file/metric_df.feather')
         return self.factor_metric
 
     def _format_sub_strategies(self, factor_metrics: pd.DataFrame) -> Dict[str, Any]:
