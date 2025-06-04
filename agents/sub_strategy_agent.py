@@ -180,45 +180,41 @@ class SubStrategyAgent(BaseAgent):
            - Can produce negative weights (suitable for short selling)
            - Best for normally distributed factors
 
-        2. **zscore_clip**: Z-score with clipping to [-1, 1]
-           - Limits extreme values
-           - Reduces outlier impact
-
-        3. **zscore_maxmin**: Z-score normalized by max absolute value
+        2. **zscore_maxmin**: Z-score normalized by max absolute value
            - Scales to [-1, 1] range
            - Preserves relative differences
 
-        4. **max_min**: Simple scaling by max absolute value
+        3. **max_min**: Simple scaling by max absolute value
            - Fast and simple
            - Good for factors with clear bounds
 
-        5. **sum**: Normalize by sum of absolute values
+        4. **sum**: Normalize by sum of absolute values
            - Ensures weights sum to 1 (in absolute terms)
            - Good for equal volatility allocation
 
-        6. **rank_s**: Standard rank transformation to [-1, 1]
+        5. **rank_s**: Standard rank transformation to [-1, 1]
            - Robust to outliers
            - Loses magnitude information
 
-        7. **rank_balanced**: Balanced rank with normal transformation
+        6. **rank_balanced**: Balanced rank with normal transformation
            - Maps ranks to normal distribution
            - Good for non-normal factor distributions
 
-        8. **rank_c**: Custom rank with top/bottom n selection
+        7. **rank_c**: Custom rank with top/bottom n selection
            - Only selects top/bottom n stocks
            - Good for concentrated portfolios
 
-        9. **long_only_zscore**: Z-score shifted to positive range
+        8. **long_only_zscore**: Z-score shifted to positive range
            - For markets without short selling (e.g., A-shares)
            - Maps to [0, 1] range
 
-        10. **long_only_softmax**: Softmax transformation
+        9. **long_only_softmax**: Softmax transformation
             - Ensures all positive weights (e.g., A-shares)
             - Emphasizes relative differences
 
         Please consider:
-        - only A-shares market cannot short sell (需要正权重)
-        - US equities,futures and crypto market can have negative weights (可以做空)
+        - only Market Type is A-shares, can use **long_only_softmax**, **long_only_zscore**(需要正权重)
+        - US equities,futures and crypto market can not use **long_only_softmax**, **long_only_zscore** (可以做空)
         - Factor distribution characteristics
         - Risk management requirements
 
@@ -445,7 +441,7 @@ class SubStrategyAgent(BaseAgent):
                 n_jobs=self.config.backtest_config["n_jobs"],
                 current_frequency='4h'
             )
-            factor_returns.to_feather(f'{path_dr}/experiment/file/returns_df.feather')
+
         return factor_returns
 
     def _backtest_factors(self, weights_df: pd.DataFrame) -> pd.DataFrame:
@@ -473,7 +469,7 @@ class SubStrategyAgent(BaseAgent):
             self.factor_metric['Holding Time'] = self.factor_metric['持仓K线数']
             self.factor_metric['Long Percentage'] = self.factor_metric['多头占比']
             self.factor_metric['Short Percentage'] = self.factor_metric['空头占比']
-            self.factor_metric.to_feather(f'{path_dr}/experiment/file/metric_df.feather')
+
         return self.factor_metric
 
     def _format_sub_strategies(self, factor_metrics: pd.DataFrame) -> Dict[str, Any]:

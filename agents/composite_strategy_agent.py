@@ -35,7 +35,7 @@ class CompositeStrategyAgent(BaseAgent):
             factor_metrics_dict = message.content.get("factor_metrics", {})
             config = message.content.get("config", {})
             ssm = message.content.get("ssm", {})
-
+            refinement = message.content.get("refinement", {})
             # 转换为DataFrame
             factor_returns = pd.DataFrame(factor_returns_dict)
             factor_metrics = pd.DataFrame(factor_metrics_dict)
@@ -51,6 +51,7 @@ class CompositeStrategyAgent(BaseAgent):
                 factor_returns,
                 stable_factors,
                 config,
+                refinement,
                 ssm
             )
 
@@ -91,17 +92,12 @@ class CompositeStrategyAgent(BaseAgent):
         stability_filters = config.get("stability_filters", {})
 
         # 默认筛选条件
-        min_sharpe = stability_filters.get("min_sharpe", 0.5)
-        max_drawdown = stability_filters.get("max_drawdown", 0.30)
-        min_win_rate = stability_filters.get("min_win_rate", 0.45)
-        min_calmar = stability_filters.get("min_calmar", 0.5)
+        min_sharpe = 0
+
 
         # 应用筛选条件
         stable_mask = (
-                (factor_metrics['夏普'] >= min_sharpe) &
-                (factor_metrics['最大回撤'] <= max_drawdown) &
-                (factor_metrics['日胜率'] >= min_win_rate) &
-                (factor_metrics['卡玛'] >= min_calmar)
+                (factor_metrics['夏普'] >= min_sharpe)
         )
 
         # 额外的统计可靠性检查
@@ -119,6 +115,7 @@ class CompositeStrategyAgent(BaseAgent):
                               factor_returns: pd.DataFrame,
                               stable_factors: List[str],
                               config: Dict[str, Any],
+                              refinement,
                               ssm: Dict[str, Any]) -> Dict[str, List[str]]:
         """Stage 2: 基于SSM的多指标排序"""
         # 只考虑稳定的因子
@@ -136,6 +133,7 @@ class CompositeStrategyAgent(BaseAgent):
             metrics_df,
             factor_returns,
             config,
+            refinement,
             ssm
         )
 
@@ -235,8 +233,8 @@ class CompositeStrategyAgent(BaseAgent):
             return None
     def _generate_strategy_combinations(self, metrics_df: pd.DataFrame,
                                         factor_returns: pd.DataFrame,
-
                                         config: Dict[str, Any],
+                                        refinement,
                                         ssm: Dict[str, Any]) -> Dict[str, List[str]]:
         """使用LLM生成策略组合"""
 
@@ -247,7 +245,10 @@ class CompositeStrategyAgent(BaseAgent):
         - Target Return: {ssm.get('target_metrics', {}).get('annualized_return', {})}
         - Risk Constraints: {ssm.get('risk_constraints', {})}
         - Investment Philosophy: {ssm.get('investment_philosophy', 'balanced')}
-
+        
+        refinement:
+            {refinement}
+        
         Available Metrics in factor_metrics_df:
         - Annualized Return (年化收益率)
         - Sharpe Ratio (夏普比率)
@@ -271,10 +272,10 @@ class CompositeStrategyAgent(BaseAgent):
         {{
             "filtering_rules": [
                 ("strategy_name", "primary_metric", n_factors, n2_factors, ascending),
-                ("high20_sharpe", "Sharpe Ratio", 5, 0, false),
-                ("high20_return", "Annualized Return", 5, 0, false),
+                ("high20_sharpe", "Sharpe Ratio", 7, 0, false),
+                ("high20_return", "Annualized Return", 6, 0, false),
                 ("balanced_risk_return", "balance_strategy", 5, 0, false),
-                ("multi_dim_alpha", "multi_dimensional_strategy", 5, 0, false)
+                ("multi_dim_alpha", "multi_dimensional_strategy", 6, 0, false)
             ],
             "balance_strategies": {{
                 "balanced_risk_return": {{
