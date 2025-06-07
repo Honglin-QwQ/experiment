@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     # 定义投资者需求
     investor_perspectives = """
-    I hope to construct a quantitative investment portfolio suitable for the crypto market, with the following specific requirements:  
+    I hope to construct a quantitative investment for the US market, with the following specific requirements:  
     1. Target annualized return exceeding 15%.  
     2. Maximum drawdown controlled within 10%.  
     3. Sharpe ratio greater than 1.5.  
@@ -180,8 +180,7 @@ if __name__ == "__main__":
     """
 
     # 投资标的
-    symbols = ['SOLUSDT', 'XRPUSDT', 'BNBUSDT', "LTCUSDT", "AAVEUSDT", "LINKUSDT", "XLMUSDT", "DOGEUSDT",
-         "BCHUSDT", "ADAUSDT", "AVAXUSDT", "ETCUSDT", "TRXUSDT", "FILUSDT", "BTCUSDT", "ETHUSDT"]
+    symbols = ['GOOGL']
 
     # 市场数据（可选）
     market_data = {

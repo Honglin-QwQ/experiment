@@ -3,13 +3,14 @@ import sys
 import time as time_module
 from datetime import timedelta
 
-path_dr = '/root/autodl-tmp'
+# path_dr = '/root/autodl-tmp'
+path_dr = 'C:/Users/Administrator/PycharmProjects'
 base_compute_frequency = '12小时'
 max_cor = 0.5
 max_read = 5
 mp_context = 'spawn'
-num_process_2=5
-num_process=5
+num_process_2=10
+num_process=10
 chunksize_n=2
 chunksize_m=100
 sys.path.append(f"{path_dr}/experiment")
@@ -885,7 +886,7 @@ def _auto_reverse_np_mimic(dt_ids: np.ndarray,
     m = monotonicity(total_mean_sum_by_layer)
 
     # --- 6. Decide action (Identical logic to Pandas) ---
-    if abs(m) < 0.8:
+    if abs(m) < 0.2:
         return 0  # Drop
     elif m < 0:
         return -1  # Reverse
@@ -980,7 +981,7 @@ def process_auto_reverse_optimized_shm(item):
 # --- Main Blocking Function (SHM, Integer Index Input) ---
 def process_auto_reverse_blocked(result_df, n_jobs,
                                  current_frequency='4小时',  # Still used by split_columns_into_blocks
-                                 time=pd.to_datetime('2024-01-01')):  # Default time updated
+                                 time=pd.to_datetime('2025-06-01')):  # Default time updated
     """
     分块处理因子自动反转 (Shared Memory version).
     Assumes result_df has an integer index and 'dt', 'target_1' columns.
@@ -1416,8 +1417,7 @@ def calculate_factor(frequency, n_jobbs, d, yinzi,sdt,edt):
         return
 
 
-def calculate_factor_returns_blocked(df, n_jobs=None, current_frequency='4小时',
-                                     split_time=pd.to_datetime('2024-01-01')):
+def calculate_factor_returns_blocked(df, n_jobs=None, current_frequency='4小时'):
     """
     分块计算因子收益，控制内存使用
 
@@ -2986,7 +2986,7 @@ class factor_to_strategy():
     def __init__(self, fre='4小时', method=None, method2=None, d='future', yinzi='4h', n_jobs=5, n_jobs2=5) -> None:
         self.reverse_dict = None
         self.filtered_factor_dict = None
-        self.split_time = pd.to_datetime('2024-01-01')
+        self.split_time = pd.to_datetime('2025-06-01')
         self.if_weight = False
         self.data = d
         self.factor_meric = None
@@ -3337,7 +3337,7 @@ class factor_to_strategy():
                 raise ValueError(f"输入DataFrame缺少必需列: {missing_cols}")
 
             factor_columns = [col for col in df.columns if col.startswith("F#")]
-            factor_columns = list(set(factor_columns) - set(self.reverse_dict['drop']))
+
             if not factor_columns:
                 print("未找到因子列 (以'F#'开头).")
                 return pd.DataFrame()

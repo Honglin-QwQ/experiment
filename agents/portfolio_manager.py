@@ -1,5 +1,6 @@
 
 import json
+import re
 from typing import Dict, Any, Optional, List
 import pandas as pd
 from dataclasses import dataclass
@@ -28,7 +29,7 @@ class PortfolioManagerAgent(BaseAgent):
         super().__init__(name, llm_client, config)
         self.current_ssm: Optional[StructuredStrategyMandate] = None
         self.iteration_count = 0
-        self.max_iterations = 5
+        self.max_iterations = 3
         self.strategy_history: List[Dict[str, Any]] = []
 
     def get_system_prompt(self) -> str:
@@ -308,9 +309,47 @@ class PortfolioManagerAgent(BaseAgent):
             )
         else:
             # 需要改进策略
-            return self._refine_strategy(defects, evaluation)
+            return self._refine_strategy(defects, evaluation,self.state["ssm"].__dict__ if hasattr(self.state["ssm"], '__dict__') else self.state["ssm"])
+    def load_factor_rules(self,content):
+        """
+        加载因子筛选规则的JSON内容
+        """
+        try:
+            # 预处理JSON字符串
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if not json_match:
+                raise ValueError("未找到有效的JSON内容")
 
-    def _refine_strategy(self, defects: List[str], evaluation: Dict[str, Any]) -> Message:
+            json_content = json_match.group()
+            # 1. 将元组表示 (...) 替换为数组表示 [...]
+
+            # 将JSON字符串转换为Python字典
+            rules_dict = json.loads(json_content)
+
+
+
+            # 将"false"字符串转换回Python的False
+            def convert_false_strings(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_false_strings(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_false_strings(x) for x in obj]
+                elif obj == "false":
+                    return False
+                elif obj == "true":
+                    return True
+                return obj
+
+            rules_dict = convert_false_strings(rules_dict)
+
+            return rules_dict
+        except json.JSONDecodeError as e:
+            print(f"JSON解析错误: {e}")
+            return None
+        except Exception as e:
+            print(f"发生错误: {e}")
+            return None
+    def _refine_strategy(self, defects: List[str], evaluation: Dict[str, Any],ssm) -> Message:
         """根据缺陷改进策略"""
         prompt = f"""
         The current strategy does not meet all requirements. Please analyze the defects and suggest refinements.
@@ -320,23 +359,53 @@ class PortfolioManagerAgent(BaseAgent):
 
         Current Performance:
         {json.dumps(evaluation, indent=2)}
+        
+        Market Type:
+        {self.current_ssm.market_type}
 
         Target Requirements:
         {json.dumps(self.current_ssm.target_metrics, indent=2)}
 
-        Based on the defects, which agent should we instruct to make changes?
-        1. SubStrategyAgent - for factor selection/transformation issues
-        2. CompositeStrategyAgent - for diversification/stability issues  
-        3. OptimizationAgent - for weight allocation issues
+        Based on the defects analysis, please provide one refinement instructions for the appropriate agent:
+
+        **For SubStrategyAgent (Normalization Method Selection):**
+        - If performance shows negative weights in A-share market: Choose long-only methods (long_only_zscore, long_only_softmax)
+        - If returns are below target: Use more aggressive methods (zscore, rank_s) for higher volatility
+        - If drawdown exceeds limits: Use conservative methods (zscore_maxmin, max_min) for stability
+        - If factor distribution is skewed: Consider rank-based methods (rank_balanced, rank_s)
+
+        **For CompositeStrategyAgent (Factor Filtering Rules):**
+        - If drawdown is excessive: Increase weight on low-drawdown sub-strategies, add Maximum Drawdown as primary filter
+        - If returns are insufficient: Prioritize high-return sub-strategies, emphasize Annualized Return and Sharpe Ratio filters
+        - If volatility is too high: Focus on Calmar Ratio and Downside Volatility metrics
+        - If win rate is low: Emphasize Daily Win Rate and Trading Win Rate in filtering
 
         Please provide refinement instructions as JSON:
         {{
-            "target_agent": "agent_name",
-            "refinement_type": "type",
+            "target_agent": "SubStrategyAgent" | "CompositeStrategyAgent",
+            "refinement_type": "normalization_optimization" | "filtering_optimization",
             "instructions": {{
-                // specific instructions for the agent
+                // For SubStrategyAgent:
+                "preferred_methods": ["method1", "method2"],  // Based on market constraints and performance gaps
+                "avoid_methods": ["method3"],  // Methods causing issues (e.g., negative weights in A-shares)
+                "risk_preference": "conservative" | "balanced" | "aggressive",  // Based on drawdown vs return trade-off
+                "market_constraints": "A-shares require positive weights" | "Short selling allowed",
+
+                // For CompositeStrategyAgent:
+                "priority_metrics": ["metric1", "metric2"],  // Metrics to emphasize based on defects
+                "weight_adjustments": {{
+                    "high_return_strategies": 0.6,  // If returns are low
+                    "low_drawdown_strategies": 0.7   // If drawdown is high
+                }},
             }}
         }}
+
+        Analysis Guidelines:
+        1. Identify the primary defect (return shortfall vs risk excess vs market constraint violation)
+        2. Select the most relevant agent to address the core issue
+        3. Provide specific, actionable instructions based on the defect pattern
+        4. Consider market characteristics (A-shares vs US/crypto/futures) for normalization choices
+        5. Balance risk-return trade-offs in filtering rule adjustments
         """
 
         response = self.llm_client.generate(
@@ -346,7 +415,8 @@ class PortfolioManagerAgent(BaseAgent):
         )
 
         # refinement = self.llm_client.parse_json_response(response.content)
-        refinement = parse_json_response(response.content)
+        print(response.content)
+        refinement = self.load_factor_rules(response.content)
 
         target_agent = refinement.get("target_agent", "SubStrategyAgent")
 
@@ -370,7 +440,7 @@ class PortfolioManagerAgent(BaseAgent):
                 content={
                     "factor_returns": self.state.get("factor_returns", pd.DataFrame()).to_dict(),
                     "factor_metrics": self.state.get("factor_metrics", pd.DataFrame()).to_dict(),
-                    "config": refinement.get("instructions", {}),
+                    "refinement": refinement.get("instructions", {}),
                     "ssm": self.state["ssm"].__dict__ if hasattr(self.state["ssm"], '__dict__') else self.state["ssm"]
                 }
             )

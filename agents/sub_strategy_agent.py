@@ -1,10 +1,14 @@
+import importlib
 import json
+import os
+
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional, List
 from loguru import logger
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
+from factor_analyzer import FactorAnalyzer
 from experiment import calculate_factor_returns_blocked, normalize_column_parallel_blocked
 
 from scipy import stats
@@ -13,7 +17,7 @@ from config.system_config import SystemConfig, MarketType
 from config.system_config import PromptTemplates
 from llm.llm_client import OpenRouterClient
 from llm.llm_client import parse_json_response
-
+from experiment import path_dr
 
 class SubStrategyAgent(BaseAgent):
     """子策略智能体 - 负责因子处理和子策略生成"""
@@ -23,6 +27,7 @@ class SubStrategyAgent(BaseAgent):
         super().__init__(name, llm_client, config)
         self.factor_calculator = factor_calculator
         self.backtest_system = backtest_system
+        self.factor_analyzer= FactorAnalyzer()
 
     def get_system_prompt(self) -> str:
         """获取系统提示词"""
@@ -33,7 +38,36 @@ class SubStrategyAgent(BaseAgent):
         if message.type == MessageType.SUB_STRATEGY_REQUEST:
             return self._handle_sub_strategy_request(message)
         return None
+    def initialize_factor_library(self):
+        """初始化因子库DataFrame"""
+        # 读取所有现有因子并计算结果
+        try:
+            factor_library_df=pd.read_feather(self.factor_calculator.input_file)
+        except FileNotFoundError:
+            all_factors = {}
+            py_file = [f for f in os.listdir('./alpha_101') if f.startswith('factor')]
+            for f in py_file[:]:
+                module_path = f"alpha_101.{f[:-3]}"
+                module = importlib.import_module(module_path)
+                if hasattr(module, f[:-3]):
+                    func = getattr(module, f[:-3])
+                    df = self.factor_analyzer.calculate_factor(func)
+                    #print(self.factor_analyzer.ic(df=df, x_col=f"F#{f[:-3]}#DEFAULT"))
+                    factor_col=f"F#{f[:-3]}#DEFAULT"
+                    if factor_col in df.columns:
+                        all_factors[factor_col] = df[factor_col]
 
+            if all_factors:
+                factor_library_df = pd.DataFrame(all_factors)
+                factor_library_df['dt'] = df['dt']
+                factor_library_df['price']=df['close']
+                factor_library_df['target_1'] = df['n1b']
+                factor_library_df['symbol'] = df['symbol']
+
+            else:
+                # 如果是空的因子库，创建只有索引的DataFrame
+                factor_library_df = pd.DataFrame(columns=['dt', 'symbol'])
+        return factor_library_df
     def _handle_sub_strategy_request(self, message: Message) -> Message:
         """处理子策略请求"""
         try:
@@ -41,10 +75,12 @@ class SubStrategyAgent(BaseAgent):
             market_type = message.content.get("market_type", "US_EQUITIES")
             iteration = message.content.get("iteration", 0)
             refinement = message.content.get("refinement", {})
+            symbol = message.content.get("symbols", 'AAPL')
 
             # 计算因子值
             logger.info("Calculating factor values...")
-            self.factor_calculator.cal_factor()
+            self.factor_calculator.factor_result=self.initialize_factor_library()
+            self.factor_calculator.factor_result.to_feather(self.factor_calculator.input_file)
             # 因子反转
             self.factor_calculator.reverse_factor()
             factor_df = self.factor_calculator.factor_result
@@ -66,6 +102,22 @@ class SubStrategyAgent(BaseAgent):
                 factor_df, factor_cols, method=normalization_config['method'],
                 n_jobs=self.factor_calculator.n_jobs, current_frequency=self.factor_calculator.frequency
             )
+
+
+            weights_df = weights_df[weights_df['symbol'].isin(symbol)]
+
+            zero_ratios = {}
+            for col in factor_cols:
+                zero_ratio = (weights_df[col] == 0).mean()
+                if zero_ratio > 0.3:  # 如果0值占比超过30%
+                    zero_ratios[col] = zero_ratio
+
+            # 获取需要删除的列名
+            cols_to_drop = list(zero_ratios.keys())
+            existing_cols = [col for col in cols_to_drop if col in weights_df.columns]
+            if existing_cols:
+                weights_df = weights_df.drop(columns=existing_cols)
+            weights_df = weights_df.sort_values(['symbol', 'dt']).reset_index(drop=True)
 
             # 计算因子收益
             logger.info("Calculating factor returns...")
@@ -145,45 +197,41 @@ class SubStrategyAgent(BaseAgent):
            - Can produce negative weights (suitable for short selling)
            - Best for normally distributed factors
 
-        2. **zscore_clip**: Z-score with clipping to [-1, 1]
-           - Limits extreme values
-           - Reduces outlier impact
-
-        3. **zscore_maxmin**: Z-score normalized by max absolute value
+        2. **zscore_maxmin**: Z-score normalized by max absolute value
            - Scales to [-1, 1] range
            - Preserves relative differences
 
-        4. **max_min**: Simple scaling by max absolute value
+        3. **max_min**: Simple scaling by max absolute value
            - Fast and simple
            - Good for factors with clear bounds
 
-        5. **sum**: Normalize by sum of absolute values
+        4. **sum**: Normalize by sum of absolute values
            - Ensures weights sum to 1 (in absolute terms)
            - Good for equal volatility allocation
 
-        6. **rank_s**: Standard rank transformation to [-1, 1]
+        5. **rank_s**: Standard rank transformation to [-1, 1]
            - Robust to outliers
            - Loses magnitude information
 
-        7. **rank_balanced**: Balanced rank with normal transformation
+        6. **rank_balanced**: Balanced rank with normal transformation
            - Maps ranks to normal distribution
            - Good for non-normal factor distributions
 
-        8. **rank_c**: Custom rank with top/bottom n selection
+        7. **rank_c**: Custom rank with top/bottom n selection
            - Only selects top/bottom n stocks
            - Good for concentrated portfolios
 
-        9. **long_only_zscore**: Z-score shifted to positive range
+        8. **long_only_zscore**: Z-score shifted to positive range
            - For markets without short selling (e.g., A-shares)
            - Maps to [0, 1] range
 
-        10. **long_only_softmax**: Softmax transformation
+        9. **long_only_softmax**: Softmax transformation
             - Ensures all positive weights (e.g., A-shares)
             - Emphasizes relative differences
 
         Please consider:
-        - only A-shares market cannot short sell (需要正权重)
-        - US equities,futures and crypto market can have negative weights (可以做空)
+        - only Market Type is A-shares, can use **long_only_softmax**, **long_only_zscore**(需要正权重)
+        - US equities,futures and crypto market can not use **long_only_softmax**, **long_only_zscore** (可以做空)
         - Factor distribution characteristics
         - Risk management requirements
 
@@ -402,20 +450,43 @@ class SubStrategyAgent(BaseAgent):
 
     def _calculate_factor_returns(self, weights_df: pd.DataFrame) -> pd.DataFrame:
         """计算因子收益"""
-        factor_returns = calculate_factor_returns_blocked(
-            df=weights_df,
-            n_jobs=self.config.backtest_config["n_jobs"],
-            current_frequency='4h',
-            split_time=pd.to_datetime('2024-01-01')
-        )
+        try:
+            factor_returns = pd.read_feather(f'{path_dr}/experiment/file/returns_df.feather')
+        except FileNotFoundError:
+            factor_returns = calculate_factor_returns_blocked(
+                df=weights_df,
+                n_jobs=self.config.backtest_config["n_jobs"],
+                current_frequency='4h'
+            )
+
         return factor_returns
 
     def _backtest_factors(self, weights_df: pd.DataFrame) -> pd.DataFrame:
         """回测所有因子"""
-        self.factor_metric = self.factor_calculator.evaluate_factor_blocked(
-            weights_df, n_jobs=self.config.backtest_config["n_jobs"],
-            current_frequency='4h'
-        )
+        try:
+            self.factor_metric= pd.read_feather(f'{path_dr}/experiment/file/metric_df.feather')
+        except FileNotFoundError:
+            self.factor_metric = self.factor_calculator.evaluate_factor_blocked(
+                weights_df, n_jobs=self.config.backtest_config["n_jobs"],
+                current_frequency='4h'
+            )
+            self.factor_metric['Annualized Return'] = self.factor_metric['年化']
+            self.factor_metric['Sharpe Ratio'] = self.factor_metric['夏普']
+            self.factor_metric['Calmar Ratio'] = self.factor_metric['卡玛']
+            self.factor_metric['Maximum Drawdown'] = self.factor_metric['最大回撤']
+            self.factor_metric['Daily Win Rate'] = self.factor_metric['日胜率']
+            self.factor_metric['Single Profit'] = self.factor_metric['单笔收益']
+            self.factor_metric['Daily Win Facet'] = self.factor_metric['日赢面']
+            self.factor_metric['New High Percentage'] = self.factor_metric['新高占比']
+            self.factor_metric['New High Interval'] = self.factor_metric['新高间隔']
+            self.factor_metric['Downside Volatility'] = self.factor_metric['下行波动率']
+            self.factor_metric['Daily P/L Ratio'] = self.factor_metric['日盈亏比']
+            self.factor_metric['Annualized Volatility'] = self.factor_metric['年化波动率']
+            self.factor_metric['Trading Win Rate'] = self.factor_metric['下行波动率']
+            self.factor_metric['Holding Time'] = self.factor_metric['持仓K线数']
+            self.factor_metric['Long Percentage'] = self.factor_metric['多头占比']
+            self.factor_metric['Short Percentage'] = self.factor_metric['空头占比']
+            #self.factor_metric.to_feather(f'{path_dr}/experiment/file/metric_df.feather')
         return self.factor_metric
 
     def _format_sub_strategies(self, factor_metrics: pd.DataFrame) -> Dict[str, Any]:

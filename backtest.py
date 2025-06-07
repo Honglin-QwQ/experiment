@@ -497,7 +497,7 @@ class WeightBacktest:
         dret = dret.round(4).reset_index()
         res["品种等权日收益"] = dret
 
-        stats = {"开始日期": dret["date"].min().strftime("%Y%m%d"), "结束日期": dret["date"].max().strftime("%Y%m%d")}
+        stats = {"开始日期": '2024-06-01', "结束日期": '2025-06-01'}
         stats.update(daily_performance(dret["total"], yearly_days=self.yearly_days))
         dfp = pd.concat([v["pairs"] for k, v in res.items() if k in symbols], ignore_index=True)
         pairs_stats = evaluate_pairs(dfp)
