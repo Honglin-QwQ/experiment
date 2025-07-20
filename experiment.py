@@ -2986,7 +2986,7 @@ class factor_to_strategy():
     def __init__(self, fre='4小时', method=None, method2=None, d='future', yinzi='4h', n_jobs=5, n_jobs2=5) -> None:
         self.reverse_dict = None
         self.filtered_factor_dict = None
-        self.split_time = pd.to_datetime('2025-06-01')
+        self.split_time = pd.to_datetime('2025-07-01')
         self.if_weight = False
         self.data = d
         self.factor_meric = None

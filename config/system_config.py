@@ -49,11 +49,11 @@ class SystemConfig:
             #     "performance_agent": "anthropic/claude-3-opus"
             # }
             self.models = {
-                    "pm_agent": "meta-llama/llama-3.3-8b-instruct:free",
-                    "sub_strategy_agent": "meta-llama/llama-3.3-8b-instruct:free",
-                    "composite_agent": "meta-llama/llama-3.3-8b-instruct:free",
-                    "optimization_agent": "meta-llama/llama-3.3-8b-instruct:free",
-                    "performance_agent": "meta-llama/llama-3.3-8b-instruct:free"
+                    "pm_agent": "minimax/minimax-m1",
+                    "sub_strategy_agent": "minimax/minimax-m1",
+                    "composite_agent": "minimax/minimax-m1",
+                    "optimization_agent": "minimax/minimax-m1",
+                    "performance_agent": "minimax/minimax-m1"
                 }
 
         if self.backtest_config is None:

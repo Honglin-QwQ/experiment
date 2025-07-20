@@ -486,7 +486,7 @@ class SubStrategyAgent(BaseAgent):
             self.factor_metric['Holding Time'] = self.factor_metric['持仓K线数']
             self.factor_metric['Long Percentage'] = self.factor_metric['多头占比']
             self.factor_metric['Short Percentage'] = self.factor_metric['空头占比']
-            #self.factor_metric.to_feather(f'{path_dr}/experiment/file/metric_df.feather')
+            self.factor_metric.to_feather(f'{path_dr}/experiment/file/metric_df.feather')
         return self.factor_metric
 
     def _format_sub_strategies(self, factor_metrics: pd.DataFrame) -> Dict[str, Any]:

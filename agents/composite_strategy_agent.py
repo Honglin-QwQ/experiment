@@ -273,9 +273,9 @@ class CompositeStrategyAgent(BaseAgent):
             "filtering_rules": [
                 ("strategy_name", "primary_metric", n_factors, n2_factors, ascending),
                 ("high20_sharpe", "Sharpe Ratio", 7, 0, false),
-                ("high20_return", "Annualized Return", 6, 0, false),
-                ("balanced_risk_return", "balance_strategy", 5, 0, false),
-                ("multi_dim_alpha", "multi_dimensional_strategy", 6, 0, false)
+                ("high20_return", "Annualized Return", 7, 0, false),
+                ("balanced_risk_return", "balance_strategy", 7, 0, false),
+                ("multi_dim_alpha", "multi_dimensional_strategy", 7, 0, false)
             ],
             "balance_strategies": {{
                 "balanced_risk_return": {{

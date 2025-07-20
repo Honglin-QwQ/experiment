@@ -20,11 +20,42 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-CODES = [
+CODES_10 = [ "MSFT", "AAPL", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "AVGO", "TSLA", "NFLX" ]
+CODES_20 = [
     "AAPL", "ADBE", "AMAT", "AMD", "AMZN", "ASML", "AVGO", "CMCSA", "COST", "CSCO",
     "GOOGL", "INTU", "META", "MSFT", "NFLX", "NVDA", "PEP", "QCOM", "TMUS", "TSLA"
 ]
-INDUSTRY_MAP = {
+CODES_100=[
+    "MSFT", "AAPL", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "AVGO", "TSLA", "NFLX",
+    "COST", "PLTR", "TMUS", "ASML", "CSCO", "AZN", "LIN", "ISRG", "PEP", "INTU",
+    "BKNG", "ADBE", "AMD", "PDD", "QCOM", "AMGN", "TXN", "HON", "ARM", "GILD",
+    "CMCSA", "VRTX", "AMAT", "PANW", "ADP", "MELI", "CRWD", "MSTR", "APP", "ADI",
+    "SBUX", "LRCX", "KLAC", "MU", "INTC", "MDLZ", "DASH", "CTAS", "CDNS", "FTNT",
+    "ORLY", "CEG", "ABNB", "SNPS", "MAR", "WDAY", "PYPL", "REGN", "ROP", "CHTR",
+    "ADSK", "CPRT", "MNST", "AEP", "TEAM", "MRVL", "PAYX", "CSX", "AXON", "NXPI",
+    "PCAR", "KDP", "FAST", "EXC", "ROST", "CCEP", "VRSK", "XEL", "FANG", "TTWO",
+    "EA", "CTSH", "IDXX", "BKR", "DDOG", "ZS", "KHC", "ODFL", "LULU", "GEHC",
+    "CSGP", "DXCM", "ANSS", "TTD", "MCHP", "CDW", "WBD", "GFS", "BIIB", "ON",
+    "MDB"
+]
+INDUSTRY_MAP_10={
+    # 科技 - Technology
+    "MSFT": "Technology",  # 微软 - 软件/云服务
+    "AAPL": "Technology",  # 苹果 - 消费电子/软件
+    "AMZN": "Technology",  # 亚马逊 - 云服务/电商平台
+    "GOOGL": "Technology",  # Alphabet A类股 - 互联网/搜索
+    "GOOG": "Technology",  # Alphabet C类股 - 互联网/搜索
+    "META": "Technology",  # Meta - 社交媒体/VR
+    "NFLX": "Technology",  # Netflix - 流媒体/内容
+
+    # 半导体 - Semiconductor
+    "NVDA": "Semiconductor",  # 英伟达 - GPU/AI芯片
+    "AVGO": "Semiconductor",  # 博通 - 半导体/通信芯片
+
+    # 消费者自主品牌 - Discretionary
+    "TSLA": "Discretionary"  # 特斯拉 - 电动汽车/清洁能源
+}
+INDUSTRY_MAP_20 = {
     # 科技
     "AAPL": "Technology",
     "ADBE": "Technology",
@@ -55,6 +86,136 @@ INDUSTRY_MAP = {
     # 其他
     "TSLA": "Discretionary"  # 消费者自主品牌/汽车
 }
+
+INDUSTRY_MAP_100={
+    # 科技 - Technology
+    "AAPL": "Technology",
+    "ADBE": "Technology",
+    "MSFT": "Technology",
+    "GOOGL": "Technology",
+    "GOOG": "Technology",
+    "META": "Technology",
+    "INTU": "Technology",
+    "AMZN": "Technology",
+    "PANW": "Technology",
+    "CDNS": "Technology",
+    "SNPS": "Technology",
+    "ADSK": "Technology",
+    "TEAM": "Technology",
+    "WDAY": "Technology",
+    "CRWD": "Technology",
+    "DDOG": "Technology",
+    "ZS": "Technology",
+    "MSTR": "Technology",
+    "APP": "Technology",
+    "TTD": "Technology",
+    "MDB": "Technology",
+
+    # 半导体 - Semiconductor
+    "NVDA": "Semiconductor",
+    "AVGO": "Semiconductor",
+    "AMD": "Semiconductor",
+    "QCOM": "Semiconductor",
+    "TXN": "Semiconductor",
+    "AMAT": "Semiconductor",
+    "ASML": "Semiconductor",
+    "LRCX": "Semiconductor",
+    "KLAC": "Semiconductor",
+    "MU": "Semiconductor",
+    "INTC": "Semiconductor",
+    "ADI": "Semiconductor",
+    "MRVL": "Semiconductor",
+    "NXPI": "Semiconductor",
+    "MCHP": "Semiconductor",
+    "ARM": "Semiconductor",
+    "ON": "Semiconductor",
+    "GFS": "Semiconductor",
+
+    # 通信/媒体 - Communication
+    "NFLX": "Communication",
+    "CMCSA": "Communication",
+    "TMUS": "Communication",
+    "CSCO": "Communication",
+    "CHTR": "Communication",
+    "WBD": "Communication",
+    "FTNT": "Communication",
+
+    # 消费品/零售 - Consumer
+    "COST": "Consumer",
+    "PEP": "Consumer",
+    "SBUX": "Consumer",
+    "MDLZ": "Consumer",
+    "ORLY": "Consumer",
+    "MAR": "Consumer",
+    "ABNB": "Consumer",
+    "ROST": "Consumer",
+    "MNST": "Consumer",
+    "KDP": "Consumer",
+    "KHC": "Consumer",
+    "LULU": "Consumer",
+    "CCEP": "Consumer",
+
+    # 消费者自主品牌/汽车 - Discretionary
+    "TSLA": "Discretionary",
+    "BKNG": "Discretionary",
+    "MELI": "Discretionary",
+    "DASH": "Discretionary",
+    "PDD": "Discretionary",
+    "TTWO": "Discretionary",
+    "EA": "Discretionary",
+
+    # 生物医药 - Biotechnology/Healthcare
+    "AMGN": "Biotechnology",
+    "AZN": "Biotechnology",
+    "GILD": "Biotechnology",
+    "VRTX": "Biotechnology",
+    "REGN": "Biotechnology",
+    "BIIB": "Biotechnology",
+    "ISRG": "Biotechnology",
+    "DXCM": "Biotechnology",
+    "IDXX": "Biotechnology",
+    "GEHC": "Biotechnology",
+
+    # 工业 - Industrial
+    "HON": "Industrial",
+    "ADP": "Industrial",
+    "CTAS": "Industrial",
+    "PAYX": "Industrial",
+    "CSX": "Industrial",
+    "PCAR": "Industrial",
+    "FAST": "Industrial",
+    "ROP": "Industrial",
+    "CPRT": "Industrial",
+    "AXON": "Industrial",
+    "ODFL": "Industrial",
+    "CDW": "Industrial",
+    "CTSH": "Industrial",
+    "ANSS": "Industrial",
+    "BKR": "Industrial",
+
+    # 公用事业 - Utilities
+    "AEP": "Utilities",
+    "EXC": "Utilities",
+    "XEL": "Utilities",
+    "CEG": "Utilities",
+
+    # 化学/材料 - Materials
+    "LIN": "Materials",
+
+    # 金融服务 - Financial Services
+    "PYPL": "Financial",
+    "VRSK": "Financial",
+
+    # 能源 - Energy
+    "FANG": "Energy",
+
+    # 房地产/数据服务 - Real Estate/Data
+    "CSGP": "Real Estate",
+
+    # 零售/电商 - Retail
+    "PLTR": "Technology"  # 大数据分析平台，归类为科技
+}
+
 
 
 def get_stock_data(
@@ -140,7 +301,7 @@ def get_stock_data(
         # 转换日期格式
         df["dt"] = pd.to_datetime(df["dt"])
 
-        df["industry"] = df["symbol"].apply(lambda x: INDUSTRY_MAP.get(x, "Other"))
+        df["industry"] = df["symbol"].apply(lambda x: INDUSTRY_MAP_10.get(x, "Other"))
         # 筛选日期范围
         start_date = pd.to_datetime(sdt)
         end_date = pd.to_datetime(edt)
@@ -160,7 +321,7 @@ class FactorAnalyzer:
     
     def __init__(self):
         """初始化因子分析器"""
-        self.codes = CODES
+        self.codes = CODES_10
         self.factors_history = []  # 存储历史因子
 
         

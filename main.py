@@ -180,7 +180,7 @@ if __name__ == "__main__":
     """
 
     # 投资标的
-    symbols = ['GOOGL']
+    symbols = ["AAPL", "AMZN", "GOOG", "META", "AVGO", "TSLA", "MSFT", "NVDA"]
 
     # 市场数据（可选）
     market_data = {
