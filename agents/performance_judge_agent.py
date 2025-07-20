@@ -45,7 +45,7 @@ class PerformanceJudgeAgent(BaseAgent):
         try:
             strategy = message.content.get("strategy", {})
             ssm = message.content.get("ssm", {})
-            symbols = message.content.get("symbols", [])
+
 
             # 执行全面评估
             logger.info("Performing comprehensive evaluation...")
@@ -54,8 +54,6 @@ class PerformanceJudgeAgent(BaseAgent):
             # performance_metrics = self._evaluate_basic_performance(strategy, symbols)
             performance_metrics = self._evaluate_basic_performance(strategy)
 
-            # 2. 压力测试
-            stress_test_results = self._perform_stress_testing(strategy, ssm)
 
             # 3. SSM合规性检查
             compliance_check = self._check_ssm_compliance(performance_metrics, ssm)
@@ -63,7 +61,6 @@ class PerformanceJudgeAgent(BaseAgent):
             # 4. 识别缺陷
             defects = self._identify_defects(
                 performance_metrics,
-                stress_test_results,
                 compliance_check,
                 ssm
             )
@@ -71,7 +68,6 @@ class PerformanceJudgeAgent(BaseAgent):
             # 5. 生成评估报告
             evaluation_report = self._generate_evaluation_report(
                 performance_metrics,
-                stress_test_results,
                 compliance_check,
                 defects
             )
@@ -87,7 +83,6 @@ class PerformanceJudgeAgent(BaseAgent):
                     "meets_requirements": meets_requirements,
                     "defects": defects,
                     "performance_metrics": performance_metrics,
-                    "stress_test_results": stress_test_results,
                     "compliance_check": compliance_check
                 }
             )
@@ -100,25 +95,6 @@ class PerformanceJudgeAgent(BaseAgent):
                 content={"error": str(e)}
             )
 
-    # def _evaluate_basic_performance(self, strategy: Dict[str, Any],
-    #                                 symbols: List[str]) -> Dict[str, Any]:
-    #     """评估基础性能"""
-    #     # 获取策略权重和回报
-    #     weights = strategy.get("weights", pd.DataFrame())
-    #     portfolio = strategy.get("portfolio", None)
-    #
-    #     if isinstance(weights, dict):
-    #         weights = pd.DataFrame(weights)
-    #
-    #     # 准备回测数据
-    #     if not weights.empty and symbols:
-    #         # 这里需要根据实际的数据格式调整
-    #         backtest_results = self._run_comprehensive_backtest(weights, symbols)
-    #     else:
-    #         # 使用提供的portfolio对象
-    #         backtest_results = self._extract_portfolio_metrics(portfolio)
-    #
-    #     return backtest_results
     def _evaluate_basic_performance(self, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """评估基础性能"""
         # 获取策略权重和回报
@@ -134,70 +110,6 @@ class PerformanceJudgeAgent(BaseAgent):
 
         return backtest_results
 
-    def _perform_stress_testing(self, strategy: Dict[str, Any],
-                                ssm: Dict[str, Any]) -> Dict[str, Any]:
-        """执行压力测试"""
-        prompt = f"""
-        Based on the strategy and market conditions, design stress test scenarios.
-
-        Strategy Type: {strategy.get('strategy_name', 'Unknown')}
-        Market Type: {ssm.get('market_type', 'US_EQUITIES')}
-
-        Please suggest 3-5 stress test scenarios that are relevant, including:
-        1. Historical crisis scenarios (e.g., 2008 financial crisis, COVID-19 crash)
-        2. Hypothetical extreme scenarios (e.g., sudden rate hikes, liquidity crisis)
-        3. Factor-specific shocks relevant to the strategy
-
-        For each scenario, specify:
-        - Name and description
-        - Expected market movements (e.g., equity -30%, volatility +200%)
-        - Duration (in days)
-        - Specific risks to test
-
-        Format as JSON, in English:
-        {{
-            "scenarios": [
-                {{
-                    "name": "scenario_name",
-                    "description": "description",
-                    "market_shocks": {{"asset_class": "percentage_change"}},
-                    "volatility_multiplier": 2.0,
-                    "duration_days": 30,
-                    "test_focus": ["risk1", "risk2"]
-                }}
-            ]
-        }}
-        CRITICAL: Please ensure the JSON response is complete and properly closed with all necessary closing braces. Do not truncate the response.
-        """
-
-        response = self.llm_client.generate(
-            prompt=prompt,
-            system_prompt=self.get_system_prompt(),
-            model=self.config.models["performance_agent"],
-            temperature=self.config.llm_config["temperature"]
-        )
-
-        # scenarios = self.llm_client.parse_json_response(response.content)
-        scenarios = parse_json_response(response.content)
-
-        # 执行压力测试
-        stress_results = {}
-
-        for scenario in scenarios.get("scenarios", []):
-            # 这里简化处理，实际应该根据场景调整数据并重新计算
-            scenario_result = {
-                "scenario_name": scenario["name"],
-                "estimated_loss": np.random.uniform(0.05, 0.25),  # 示例
-                "recovery_time": np.random.randint(30, 180),  # 示例
-                "risk_metrics": {
-                    "var_95": np.random.uniform(0.02, 0.08),
-                    "cvar_95": np.random.uniform(0.05, 0.15),
-                    "max_drawdown": np.random.uniform(0.10, 0.40)
-                }
-            }
-            stress_results[scenario["name"]] = scenario_result
-
-        return stress_results
 
     def _check_ssm_compliance(self, performance_metrics: Dict[str, Any],
                               ssm: Dict[str, Any]) -> Dict[str, Any]:
@@ -254,7 +166,7 @@ class PerformanceJudgeAgent(BaseAgent):
         return compliance_results
 
     def _identify_defects(self, performance_metrics: Dict[str, Any],
-                          stress_test_results: Dict[str, Any],
+
                           compliance_check: Dict[str, Any],
                           ssm: Dict[str, Any]) -> List[str]:
         """识别策略缺陷"""
@@ -277,11 +189,7 @@ class PerformanceJudgeAgent(BaseAgent):
         if performance_metrics.get("Daily Win Rate", 0) < 0.45:
             defects.append("POOR_WIN_RATE")
 
-        # 基于压力测试结果识别缺陷
-        for scenario_name, result in stress_test_results.items():
-            if result.get("estimated_loss", 0) > 0.20:
-                defects.append("TAIL_RISK")
-                break
+
 
         # 基于合规性检查识别缺陷
         if not compliance_check.get("overall_compliance", False):
@@ -292,29 +200,21 @@ class PerformanceJudgeAgent(BaseAgent):
         return list(set(defects))
 
     def _generate_evaluation_report(self, performance_metrics: Dict[str, Any],
-                                    stress_test_results: Dict[str, Any],
+
                                     compliance_check: Dict[str, Any],
                                     defects: List[str]) -> Dict[str, Any]:
         """生成评估报告"""
         report = {
             "summary": {
                 "overall_score": self._calculate_overall_score(
-                    performance_metrics, stress_test_results, defects
+                    performance_metrics, defects
                 ),
                 "key_strengths": self._identify_strengths(performance_metrics),
                 "key_weaknesses": [self.defect_categories.get(d, d) for d in defects],
                 "recommendation": self._generate_recommendation(defects, performance_metrics)
             },
             "detailed_metrics": performance_metrics,
-            "stress_test_summary": {
-                "scenarios_tested": len(stress_test_results),
-                "worst_case_loss": max(
-                    r.get("estimated_loss", 0) for r in stress_test_results.values()
-                ) if stress_test_results else 0,
-                "average_recovery_time": np.mean([
-                    r.get("recovery_time", 0) for r in stress_test_results.values()
-                ]) if stress_test_results else 0
-            },
+
             "compliance_summary": {
                 "meets_all_requirements": compliance_check.get("overall_compliance", False),
                 "failed_requirements": [
@@ -327,7 +227,7 @@ class PerformanceJudgeAgent(BaseAgent):
         return report
 
     def _calculate_overall_score(self, performance_metrics: Dict[str, Any],
-                                 stress_test_results: Dict[str, Any],
+
                                  defects: List[str]) -> float:
         """计算总体评分"""
         score = 100.0
@@ -342,13 +242,7 @@ class PerformanceJudgeAgent(BaseAgent):
         elif sharpe < 1.0:
             score -= 10
 
-        # 基于压力测试结果调整
-        if stress_test_results:
-            worst_loss = max(r.get("estimated_loss", 0) for r in stress_test_results.values())
-            if worst_loss > 0.30:
-                score -= 20
-            elif worst_loss < 0.10:
-                score += 10
+
 
         return max(0, min(100, score))
 
@@ -379,36 +273,20 @@ class PerformanceJudgeAgent(BaseAgent):
         recommendations = []
 
         if "EXCESSIVE_DRAWDOWN" in defects:
-            recommendations.append("考虑增加防御性资产或实施止损机制")
+            recommendations.append("考虑增加更多低回测低波动率的因子")
 
         if "LOW_SHARPE" in defects:
-            recommendations.append("优化资产配置以提高风险调整收益")
+            recommendations.append("考虑增加更多高夏普的因子")
 
         if "INSUFFICIENT_RETURN" in defects:
-            recommendations.append("考虑增加高alpha因子或提高风险预算")
+            recommendations.append("考虑增加更多高年华的因子")
 
         if "HIGH_VOLATILITY" in defects:
-            recommendations.append("增加低波动性资产或使用波动率目标策略")
+            recommendations.append("增加低波动性因子")
 
         return "；".join(recommendations) + "。"
 
-    def _run_comprehensive_backtest(self, weights: pd.DataFrame,
-                                    symbols: List[str]) -> Dict[str, Any]:
-        """运行全面回测"""
 
-        # 简化示例
-        results = {
-            "Annual Return": 0.15,
-            "Sharpe ratio": 1.5,
-            "Maximum drawdown": 0.12,
-            "Daily win rate": 0.52,
-            "Calmar ratio": 1.25,
-            "Annualized Volatility": 0.18,
-            "Downside Volatility": 0.12,
-            "Non-zero Coverage": 0.85
-        }
-
-        return results
 
     def _extract_portfolio_metrics(self, portfolio) -> Dict[str, Any]:
         """从portfolio对象提取指标"""

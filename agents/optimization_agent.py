@@ -117,13 +117,12 @@ class OptimizationAgent(BaseAgent):
                 strategy_returns = factor_returns_df[factors]
 
                 # 划分训练集和测试集
-                split_date = pd.Timestamp('2024-01-01')
+                split_date = pd.Timestamp('2024-06-01')
                 train_data = strategy_returns[strategy_returns.index <= split_date]
                 test_data = strategy_returns[strategy_returns.index > split_date]
 
                 # 优化策略
                 strategy_results = self._optimize_strategy(
-                    strategy_name,
                     train_data,
                     test_data,
                     selected_models,
@@ -209,15 +208,14 @@ class OptimizationAgent(BaseAgent):
             # 默认模型组合
             return ["MaxSharpe", "InverseVol", "RiskParity"]
 
-    def _optimize_strategy(self, strategy_name: str, train_data: pd.DataFrame,
+    def _optimize_strategy(self, train_data: pd.DataFrame,
                            test_data: pd.DataFrame, selected_models: List[str],
                            config: Dict[str, Any]) -> Dict[str, Any]:
         """优化单个策略"""
         model_results = {}
         populations = []
 
-        # 设置滚动窗口交叉验证
-        cv = WalkForward(train_size=252, test_size=21)  # 1年训练，1月测试
+
 
         for model_name in selected_models:
             try:
@@ -227,18 +225,11 @@ class OptimizationAgent(BaseAgent):
                 model = self.optimization_models[model_name]()
 
                 # 根据模型类型选择优化方法
-                if model_name in ["NCO"]:
+
                     # NCO需要先fit再predict
-                    model.fit(train_data)
-                    pred = model.predict(test_data)
-                else:
-                    # 其他模型使用交叉验证
-                    pred = cross_val_predict(
-                        model,
-                        test_data,
-                        cv=cv,
-                        portfolio_params=dict(name=f"{strategy_name}_{model_name}")
-                    )
+                model.fit(train_data)
+                pred = model.predict(test_data)
+
 
                 # 保存结果
                 model_results[model_name] = {
@@ -376,5 +367,6 @@ class OptimizationAgent(BaseAgent):
                     "sharpe_ratio": best_sharpe,
                     "performance": results[best_model]["performance"]
                 }
+        print(report)
 
         return report
