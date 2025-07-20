@@ -101,6 +101,8 @@ class PromptTemplates:
         - Regulatory compliance and investment constraints
         """
 
+
+
     @staticmethod
     def sub_strategy_system_prompt() -> str:
         """Sub-Strategy Agent的系统提示词"""
